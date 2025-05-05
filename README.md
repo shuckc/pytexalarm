@@ -1,6 +1,5 @@
-
-# pialarm
-This repository contains scripts to speak to (and impersonate) a Texecom alarm panel UDL protocol over either UART serial or TCP ports. The project implements some of the functionality of Wintex, the Texecom windows-based configuration tool through a web browser.
+# pytexalarm
+This repository contains scripts to speak to (and impersonate) a Texecom alarm panel UDL protocol over either UART serial or TCP ports. The project implements some of the functionality of Wintex, the Texecom windows-based configuration tool. It can dump the configuration from a panel, decode it and expose through a web browser.
 
 ## Quickstart - Running a virtual panel
 
@@ -14,7 +13,7 @@ This repository contains scripts to speak to (and impersonate) a Texecom alarm p
 
 3. start `udl-server.py` running:
 
-        $ git clone https://github.com/shuckc/pialarm.git
+        $ git clone https://github.com/shuckc/pytexalarm.git
         $ cd pialarm
         $ python3 -m venv venv
         $ . venv/bin/activate
