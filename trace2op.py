@@ -51,10 +51,10 @@ if __name__ == "__main__":
 
     stream = sys.stdin if args.trace == "-" else open(args.trace, "r")
 
-    with MemStore(args.mem, size=0x8000, file_offset=0x0) as wr_mem, MemStore(
-        args.mem, size=0x4000, file_offset=0x8000
-    ) as wr_io:
-
+    with (
+        MemStore(args.mem, size=0x8000, file_offset=0x0) as wr_mem,
+        MemStore(args.mem, size=0x4000, file_offset=0x8000) as wr_io,
+    ):
         buffers = dict(
             [
                 (direction, SerialWintexRecord(args, direction, mem=wr_mem, io=wr_io))

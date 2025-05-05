@@ -2,7 +2,7 @@
 import argparse
 import asyncio
 from itertools import count
-from pialarm import SerialWintex, MemStore, WintexMemDecoder, get_panel_decoder
+from pialarm import SerialWintex, MemStore, get_panel_decoder
 import webpanel
 from functools import partial
 import os
@@ -65,7 +65,7 @@ KEY_MAP = {
 def unpack_mem_proto(region, msg_body):
     base = (msg_body[0] << 16) + (msg_body[1] << 8) + msg_body[2]
     sz = msg_body[3]
-    if not len(msg_body) in [4, sz + 4]:
+    if len(msg_body) not in [4, sz + 4]:
         raise Exception(
             f"config read/write len {sz} vs. data payload {len(msg_body)} mismatch"
         )
@@ -157,7 +157,7 @@ class SerialWintexPanel(SerialWintex):
         if old != new:
             for n, (i, j) in enumerate(zip(old, new)):
                 if i != j:
-                    print(f"  mem: updated {base+n:06x} old={i:02x} new={j:02x}")
+                    print(f"  mem: updated {base + n:06x} old={i:02x} new={j:02x}")
 
     def prep(self, msg):
         return [ord(x) for x in msg]
@@ -220,10 +220,10 @@ async def main():
     )
 
     with patch_stdout():
-        with MemStore(args.mem, size=0x8000, file_offset=0x0) as mem, MemStore(
-            args.mem, size=0x4000, file_offset=0x8000
-        ) as io:
-
+        with (
+            MemStore(args.mem, size=0x8000, file_offset=0x0) as mem,
+            MemStore(args.mem, size=0x4000, file_offset=0x8000) as io,
+        ):
             panel = get_panel_decoder(args, mem, io)
             server = await asyncio.start_server(
                 partial(udl_server, mem, io, args), None, args.udl_port

@@ -12,7 +12,7 @@ async def handle_index(request):
 
 async def handle_json_raw(request):
     panel = request.app["panel"]
-    text = text + json.dumps(panel.decode(), indent=4)
+    text = json.dumps(panel.decode(), indent=4)
     return web.Response(text=text)
 
 
@@ -25,7 +25,6 @@ async def handle_json(request):
 
 @aiohttp_jinja2.template("config.jinja2")
 async def handle_config(request):
-    text = "Config\n\n"
     panel = request.app["panel"]
     return {"panel": panel.decode()}
 
