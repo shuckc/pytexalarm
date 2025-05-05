@@ -20,7 +20,7 @@ from conductive tools etc.
 
 ## Communications
 I've wired up the com ports on the board to GPIO pins. COM1 gets the 'hardware' UART on the PI, since it
-is used for the Wincom connections which are fairly high baud and need to be resillient. The others are bit-banged
+is used for the UDL connections which need to be resillient. The others are bit-banged
 on general IO pins using the pigpio libraries emulated uart.
 
     Pannel                                    Raspberry Pi
@@ -38,7 +38,7 @@ on general IO pins using the pigpio libraries emulated uart.
         Tx   |*  -------------*----
         Rx   |*  ------------------
 
-     COM3 aka. Digit Modem
+     COM3 aka. Digi-Modem
         12v   o
         -     o
         -     o
