@@ -1,6 +1,6 @@
 # Wintex captures
 
-    < wintex to pannel
+    < wintex to panel
     > reply
 
 ### Login exchange
@@ -165,7 +165,7 @@ Sometimes R/W is not giving back screen messages. Could be another bus device or
     2018/07/23 12:50:45 term 00 00 ff ff ff ff 00 00  |........|
     2018/07/23 12:50:45 term 00 00 00 00 00 00 1c     |.......|
 
-If I is sent from wintex to the pannel, it always seems to be a block and answered by 0x06, fixed length ack? I think this is pushing configuration.
+If I is sent from wintex to the panel, it always seems to be a block and answered by 0x06, fixed length ack? I think this is pushing configuration.
 
     2018/07/24 12:43:27 tcp  47 49 00 12 70 40 ff ff  |GI..p@..|
     2018/07/24 12:43:27 tcp  ff ff ff ff ff ff ff ff  |........|

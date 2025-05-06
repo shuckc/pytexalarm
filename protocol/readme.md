@@ -4,7 +4,7 @@ You can open the log files using the Salae Logic software from https://www.salea
 
 ![Screenshot of logic traces](logic-screenshot.png)
 
-Put the COM port on the pannel into 'nothing connected' mode. Like this the pannel waits for incoming commands on any of the supported protocols.
+Put the COM port on the panel into 'nothing connected' mode. Like this the panel waits for incoming commands on any of the supported protocols.
 
 
 Later captures were done by using the built in logger mode of ser2net and pointing wintex at the ser2net port.,

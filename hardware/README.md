@@ -8,7 +8,7 @@ this is likely a very short PCB trace. There is a 7805CT 1A linear regulator on-
 suited to power the Pi. The Hobbywing UBEC is a reasonable low-cost DC-DC convertor, easily bought via. ebay such as https://www.ebay.co.uk/itm/Hobbywing-3A-UBEC-5V-6V-Switch-Mode-BEC-/221655594331
 
 
-    Pannel                          Raspberry Pi
+    Panel                           Raspberry Pi
                 +------------+      GPIO Header P1
     DC+  12V ---| Hobbywing  |----- pin 1   +5V
     DC-   0V ---| 3A 5V UBEC |----- pin 3    0V
@@ -23,7 +23,7 @@ I've wired up the com ports on the board to GPIO pins. COM1 gets the 'hardware' 
 is used for the UDL connections which need to be resillient. The others are bit-banged
 on general IO pins using the pigpio libraries emulated uart.
 
-    Pannel                                    Raspberry Pi
+    Panel                                     Raspberry Pi
     COM1 "No device"                          GPIO Header P1
         12v  |o
         -    |x

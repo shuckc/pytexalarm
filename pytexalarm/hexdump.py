@@ -1,13 +1,14 @@
 # https://gist.github.com/NeatMonster/c06c61ba4114a2b31418a364341c26c0
+from typing import Iterator
 
 
 class hexdump:
-    def __init__(self, buf, off=0, ind=0):
+    def __init__(self, buf: bytes, off: int = 0, ind: int = 0):
         self.buf = buf
         self.off = off
         self.indent = " " * ind
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         last_bs, last_line = None, None
         for i in range(0, len(self.buf), 16):
             bs = bytearray(self.buf[i : i + 16])
@@ -25,8 +26,8 @@ class hexdump:
             last_bs, last_line = bs, line
         yield "{}{:08x}".format(self.indent, self.off + len(self.buf))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "\n".join(self)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "\n".join(self)

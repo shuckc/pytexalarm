@@ -24,7 +24,7 @@ This repository contains scripts to speak to (and impersonate) a Texecom alarm p
         Serving web interface on 10002
         (eval) >
 
-4. In wintex hit `Connect` -> `Connect via. Network (127.0.0.1 on Port 10001)`. Wintex will prompt to reset the fake pannel. You will see some output like:
+4. In wintex hit `Connect` -> `Connect via. Network (127.0.0.1 on Port 10001)`. Wintex will prompt to reset the fake panel. You will see some output like:
 
         udl_server 0: connected
         Sending login prompt
@@ -43,7 +43,7 @@ This repository contains scripts to speak to (and impersonate) a Texecom alarm p
 
 ## Serial connection
 
-To interface a raspberry Pi to the alarm pannel requires only a couple of resistors, plus a 12-15V DC to 5V DC power adapter. In the [hardware](hardware/) directory you can see how to connect it to the Texecom main board. It it not necessary to buy any IP-communicator or Com300 board to do this.
+To interface a raspberry Pi to the alarm panel requires only a couple of resistors, plus a 12-15V DC to 5V DC power adapter. In the [hardware](hardware/) directory you can see how to connect it to the Texecom main board. It it not necessary to buy any IP-communicator or Com300 board to do this.
 
 
 ### Protocol
