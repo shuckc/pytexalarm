@@ -2,10 +2,18 @@
 import argparse
 import asyncio
 from itertools import count
-from .pialarm import SerialWintex, MemStore, get_panel_decoder
-import webpanel
+from .pialarm import (
+    SerialWintex,
+    get_panel_decoder,
+    panel_from_file,
+    WintexMemDecoder,
+    get_bcd,
+)
+
+from .webpanel import start_server
 from functools import partial
 import os
+from typing import Any
 
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.shortcuts import PromptSession
@@ -16,7 +24,7 @@ MEMFILE = os.path.expanduser(os.path.join("~", "alarmpanel.cfg"))
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument(
-    "--panel",
+    "--banner",
     help="Specify the panel to identify as\nUse 'Premier 832 V4.0' for an 832",
     default="Elite 24    V4.02.01",
 )
@@ -26,7 +34,9 @@ parser.add_argument(
 parser.add_argument(
     "--debug", help="Print bytes on wire", action="store_true", default=False
 )
-parser.add_argument("--mem", help="write panel config to MEMFILE", default=MEMFILE)
+parser.add_argument(
+    "--mem", help="read/write panel config from MEMFILE", default=MEMFILE
+)
 parser.add_argument("--udl-port", help="UDL port", default=PORT, type=int)
 parser.add_argument("--udl-password", help="UDL password", default="1234")
 parser.add_argument("--web-port", help="web port", default=WEBPORT, type=int)
@@ -36,7 +46,7 @@ parser.add_argument("--web-port", help="web port", default=WEBPORT, type=int)
 BUFSIZE = 16384
 CONNECTION_COUNTER = count()
 
-ACK_MSG = [0x06]
+ACK_MSG = b"\06"
 
 KEY_MAP = {
     0x01: "Digit 1",
@@ -62,7 +72,7 @@ KEY_MAP = {
 }
 
 
-def unpack_mem_proto(region, msg_body):
+def unpack_mem_proto(region: bytes, msg_body: bytes) -> tuple[int, int, bytes, bytes]:
     base = (msg_body[0] << 16) + (msg_body[1] << 8) + msg_body[2]
     sz = msg_body[3]
     if len(msg_body) not in [4, sz + 4]:
@@ -74,49 +84,65 @@ def unpack_mem_proto(region, msg_body):
     return (base, sz, wr_data, old_data)
 
 
-def hexbytes(data):
+def hexbytes(data: bytes) -> str:
     return ",".join(hex(x) for x in data)
 
 
 class SerialWintexPanel(SerialWintex):
-    def handle_msg(self, mtype, body):
-        # commands we will store and destination region
+    def __init__(self, panel: WintexMemDecoder, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.serial: bytes = b"\x01\x00\x07\x09\x04\x07\x01"
+        self.panel: WintexMemDecoder = panel
+        self.outbound: list[bytes] = []
 
+    def handle_msg(self, body: bytes) -> bytes | None:
+        mtype = body[0:1].decode()
+        body = body[1:]
+
+        # commands we will store and destination region
         if mtype == "Z" and len(body) == 0:
-            print("Sending login prompt")
-            return self.prep("Z\x05\x01\x00\x07\x09\x04\x07\x01")
+            print(f"Sending login prompt for serial '{get_bcd(self.serial, 0, 7)}'")
+            # unsure of the significance of this 0x05
+            return b"Z\x05" + self.serial
         elif mtype == "Z":
-            print(f"Recieved UDL login {body}. Sending panel identification")
-            return self.prep("Z" + self.args.panel)
+            login = body.decode()
+            print(f"Recieved UDL login '{login}'.")
+            self.check_udl_login(login)
+            print(f"Sending panel identification '{self.panel.banner}'")
+            assert len(self.panel.banner) == 20
+            return ("Z" + self.panel.banner).encode()
         elif mtype == "H":
             print("Wintex hang up")
-            return [0x03, 0x06, 0xF6]
+            return b"\03\06\xf6"
         # wintex shows 'Reading UDL options'
         elif mtype == "O":  # configuration read
-            base, sz, wr_data, old_data = unpack_mem_proto(self.mem, body)
+            base, sz, wr_data, old_data = unpack_mem_proto(self.panel.mem, body)
             print(
-                f"Configuration read addr={base:06x} sz={sz:01x} data={hexbytes(old_data)}"
+                f"Configuration read addr={base:06x} sz={sz:01x} data={old_data.hex()}"
             )
-            return [ord("I")] + body[0:4] + list(old_data)  # echo back addr and sz
+            return b"I" + body[0:4] + old_data  # echo back addr and sz
         elif mtype == "I":  # configuration write
-            base, sz, wr_data, old_data = unpack_mem_proto(self.mem, body)
+            base, sz, wr_data, old_data = unpack_mem_proto(self.panel.mem, body)
+            print(
+                f"Configuration write addr={base:06x} sz={sz:01x} data={wr_data.hex()}"
+            )
             self.print_deltas(base, old_data, wr_data)
-            self.mem[base] = wr_data
+            self.panel.mem[base : base + sz] = wr_data
             return ACK_MSG
         elif mtype == "R":  # live state read
-            base, sz, wr_data, old_data = unpack_mem_proto(self.io, body)
+            base, sz, wr_data, old_data = unpack_mem_proto(self.panel.io, body)
             print(
                 f"Live state read addr={base:06x} sz={sz:01x} data={hexbytes(old_data)}"
             )
-            return [ord("W")] + body[0:4] + list(old_data)
+            return b"W" + body[0:4] + old_data
         elif mtype == "W":  # live state write
-            base, sz, wr_data, old_data = unpack_mem_proto(self.io, body)
+            base, sz, wr_data, old_data = unpack_mem_proto(self.panel.io, body)
             print(f"Live state write addr={base:06x} sz={sz:01x}")
             self.print_deltas(base, old_data, wr_data)
-            self.io[base] = wr_data
+            self.panel.io[base : base + sz] = wr_data
             return ACK_MSG
         elif mtype == "P":  # Heartbeat
-            return [ord("P"), 255, 255]
+            return b"P\xff\xff"
         elif mtype == "K":  # Keypad press
             print(f"Keypad {body[0]} pressed 0x{body[1]:02x} - {KEY_MAP.get(body[1])}")
             return ACK_MSG
@@ -141,10 +167,10 @@ class SerialWintexPanel(SerialWintex):
             return ACK_MSG
         elif mtype == "B":
             # RTC programming done via. B with args [56, 9, 29, 1, 0]
-            if body == [56, 9, 29, 1, 0]:
+            if body == b"\56\00\29\01\00":
                 print("RTC initialise special op 1")
                 return ACK_MSG
-            elif body == [57, 9, 29, 1, 0]:
+            elif body == b"\57\09\29\01\00":
                 print("RTC initialise special op 2")
                 return ACK_MSG
             else:
@@ -152,38 +178,48 @@ class SerialWintexPanel(SerialWintex):
                 return ACK_MSG
         else:
             print(f"Unknown command {mtype} with args {body!r}")
+        return None
 
-    def print_deltas(self, base, old, new):
+    def send_bytes(self, message: bytes) -> None:
+        self.outbound.append(message)
+
+    def print_deltas(self, base: int, old: bytes, new: bytes) -> None:
         if old != new:
             for n, (i, j) in enumerate(zip(old, new)):
                 if i != j:
                     print(f"  mem: updated {base + n:06x} old={i:02x} new={j:02x}")
 
-    def prep(self, msg):
-        return [ord(x) for x in msg]
+    def check_udl_login(self, login: str) -> None:
+        pass
 
 
-async def udl_server(mem, io, args, reader, writer):
+async def udl_server(
+    panel: WintexMemDecoder,
+    debug: bool,
+    reader: asyncio.StreamReader,
+    writer: asyncio.StreamWriter,
+) -> None:
     # Assign each connection a unique number to make our debug prints easier
     # to understand when there are multiple simultaneous connections.
-    ser = SerialWintexPanel(args, "tcp", mem=mem, io=io)
+    ser = SerialWintexPanel(panel, direction="tcp")
     ident = next(CONNECTION_COUNTER)
     print(f"udl_server {ident}: connected")
     try:
         while True:
             data = await reader.read(BUFSIZE)
-            if args.debug:
+            if debug:
                 print(f"udl_server {ident}: received data {data!r}")
 
             if not data:
                 print(f"udl_server {ident}: connection closed")
                 return
 
-            for reply in ser.on_bytes(data):
-                reply = bytes(reply)
-                if args.debug:
-                    print(f" udl_server {ident}: sending {reply}")
-                writer.write(reply)
+            ser.on_bytes(data)
+            for out in ser.outbound:
+                if debug:
+                    print(f" udl_server {ident}: sending {out!r}")
+                writer.write(out)
+            del ser.outbound[:]
 
     except Exception as exc:
         # Unhandled exceptions will propagate into our parent and take
@@ -193,52 +229,54 @@ async def udl_server(mem, io, args, reader, writer):
         raise
 
 
-async def interactive_shell(mem, io, args):
+async def interactive_shell(panel: WintexMemDecoder) -> None:
     """
     Provides a simple repl that allows interactive
     modification of the panel memory.
     """
-    # Create Prompt.
-    session = PromptSession("(eval) > ")
+    session: PromptSession[str] = PromptSession("(eval) > ")
 
     # Run echo loop. Read text from stdin, and reply it back.
     while True:
         try:
-            input = await session.prompt_async()
-            exec(input, {"mem": mem, "io": io, "args": args})
+            pinput = await session.prompt_async()
+            exec(pinput, {"panel": panel})
         except (EOFError, KeyboardInterrupt):
             return
         except Exception as ex:
             print(str(ex))
 
 
-async def main():
+async def main() -> None:
     args = parser.parse_args()
 
+    panel: WintexMemDecoder
+    if args.banner:
+        panel = get_panel_decoder(args.banner)
+    elif args.mem:
+        panel = panel_from_file(args.mem)
+    else:
+        raise ValueError("Supply panel banner or file!")
+
     print(
-        f"Panel type '{args.panel}' with UDL password {args.udl_password} backed by file {args.mem}"
+        f"Panel type '{panel}' with UDL password {args.udl_password} backed by file {args.mem}"
     )
 
     with patch_stdout():
-        with (
-            MemStore(args.mem, size=0x8000, file_offset=0x0) as mem,
-            MemStore(args.mem, size=0x4000, file_offset=0x8000) as io,
-        ):
-            panel = get_panel_decoder(args, mem, io)
-            server = await asyncio.start_server(
-                partial(udl_server, mem, io, args), None, args.udl_port
-            )
-            addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
-            print(f"Serving UDL on {addrs}")
+        server = await asyncio.start_server(
+            partial(udl_server, panel, args.debug), None, args.udl_port
+        )
+        addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
+        print(f"Serving UDL on {addrs}")
 
-            if args.web_port > 0:
-                await webpanel.start_server(mem, io, args, panel)
+        if args.web_port > 0:
+            await start_server(panel, args.web_port)
 
-            try:
-                await interactive_shell(mem, io, args)
-            except Exception as e:
-                print(e)
-            print("Quitting event loop. Bye.")
+        try:
+            await interactive_shell(panel)
+        except Exception as e:
+            print(e)
+        print("Quitting event loop. Bye.")
 
 
 asyncio.run(main())
