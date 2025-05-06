@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Iterable, Optional, Self, overload, Any
+from typing import Iterable, Optional, overload, Any
 from collections.abc import MutableSequence
 from types import TracebackType
 import array
@@ -101,7 +101,7 @@ class MemStore(MutableSequence[int]):
         except Exception as e:
             raise e
 
-    def __enter__(self) -> Self:
+    def __enter__(self) -> "MemStore":
         return self
 
     def __exit__(
