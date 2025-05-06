@@ -2,7 +2,7 @@
 import argparse
 import asyncio
 from itertools import count
-from pialarm import SerialWintex, MemStore, get_panel_decoder
+from .pialarm import SerialWintex, MemStore, get_panel_decoder
 import webpanel
 from functools import partial
 import os

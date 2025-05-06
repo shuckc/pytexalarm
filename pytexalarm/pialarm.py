@@ -1,24 +1,30 @@
-from collections.abc import Iterable
+from __future__ import annotations
+from typing import Iterable, Optional, Self, overload, Any
+from collections.abc import MutableSequence
+from types import TracebackType
 import array
+import pickle
 
 
-def printable(c, alt=None):  # c should be int 0..255
+def printable(c: int, alt: Optional[str] = None) -> str:  # c should be int 0..255
     if alt is None:
         alt = "0x{:02x}".format(c)
     return chr(c) if str.isprintable(chr(c)) else alt
 
 
+# speak the UDL low-level protocol. Recieve frames in 'on_byes', buffer until the next header's length
+# is available, validate CRC and then pass to parse_msg. If a reply is produced, add length prefix and CRC
+# then pass this to subclass 'send_bytes'.
 class SerialWintex:
-    def __init__(self, args, direction, mem=None, io=None):
-        self.buf = []
-        self.args = args
+    def __init__(self, direction: str = "", verbose: bool = False, debug: bool = False):
+        self.buf = bytearray()
+        self.verbose = verbose
+        self.debug = debug
         self.direction = direction
-        self.mem = mem
-        self.io = io
 
-    def on_bytes(self, bytes_message, context=None):
+    def on_bytes(self, bytes_message: bytes) -> None:
         self.buf.extend(bytes_message)
-        if self.args.debug:
+        if self.debug:
             print(f" buffer: {self.direction:4s} {self.buf}")
         # have we a full message in this direction
         while len(self.buf) > 0 and len(self.buf) >= self.buf[0]:
@@ -26,7 +32,7 @@ class SerialWintex:
             chk = self.checksum(self.buf[0:sz])
             if chk != 0:
                 print(
-                    f"Warning: bad checksum for {self.direction} at {context} -> {self.buf}, emptying buffer"
+                    f"Warning: bad checksum for {self.direction} at {self.buf}, emptying buffer"
                 )
                 del self.buf[:]
             else:
@@ -34,45 +40,47 @@ class SerialWintex:
                     self.buf[1 : sz - 1]
                 )  # parser does not need length or checksum
                 if reply:
-                    msg = []
+                    msg = bytearray()
                     msg.insert(0, len(reply) + 2)  # prepend size, len(msg)+chk+sz
                     msg.extend(reply)
                     checksum = self.checksum(msg)
                     msg.append(checksum)
-                    yield msg
+                    self.send_bytes(msg)
                 del self.buf[0:sz]
-        return
 
-    def checksum(self, msg):
+    def checksum(self, msg: bytes) -> int:
         # subtract each byte from 0xff
         v = 255
         for b in msg:
             v -= b
         return v % 256
 
-    def log_msg(self, direction, msg):
+    def log_msg(self, msg: bytes) -> None:
         mtype = msg[0]
         printable_type = printable(mtype)
         msg_hex = " ".join("{:02x}".format(m) for m in msg[1:])
         msg_ascii = "".join(printable(c, alt=".") for c in msg[1:])
-        if self.args.verbose:
-            print(f"  {direction:4s} {printable_type} {msg_hex} | {msg_ascii} ")
+        if self.verbose:
+            print(f"  {self.direction:4s} {printable_type} {msg_hex} | {msg_ascii} ")
 
-    def parse_msg(self, msg):
-        self.log_msg("<", msg)
-        mtype = msg[0]
-        printable_type = printable(mtype)
-        reply = self.handle_msg(printable_type, msg[1:])
+    def parse_msg(self, msg: bytes) -> Optional[bytes]:
+        self.log_msg(msg)
+        reply = self.handle_msg(msg)
         if reply:
-            self.log_msg(">", reply)
+            self.log_msg(reply)
         return reply
 
-    def handle_msg(self, mtype, body):
+    def handle_msg(self, body: bytes) -> Optional[bytes]:
+        # subclass for handling logic
+        raise ValueError()
+
+    def send_bytes(self, msg: bytes) -> None:
+        # optional subclass if sending replies
         pass
 
 
-class MemStore:
-    def __init__(self, filename, size=0x0, file_offset=0x0):
+class MemStore(MutableSequence[int]):
+    def __init__(self, filename: str, size: int = 0x0, file_offset: int = 0x0):
         self.backing_file = None
         self.file_offset = file_offset
         self.size = size
@@ -92,10 +100,15 @@ class MemStore:
         except Exception as e:
             raise e
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(
+        self,
+        type_: type[BaseException] | None,
+        value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> bool | None:
         if self.backing_file:
             print(
                 f"Writing 0x{self.size:x} bytes to offet 0x{self.file_offset:x} within {self.backing_file}"
@@ -103,66 +116,108 @@ class MemStore:
             self.backing_file.seek(self.file_offset)
             self.backing_array.tofile(self.backing_file)
             self.backing_file.close()
+        return None
 
-    def __getitem__(self, key):
+    @overload
+    def __getitem__(self, i: int) -> int: ...
+    @overload
+    def __getitem__(self, s: slice) -> MutableSequence[int]: ...
+    def __getitem__(self, key: int | slice) -> int | MutableSequence[int]:
         return self.backing_array[key]
 
-    def __setitem__(self, key, value):
+    @overload
+    def __setitem__(self, i: int, v: int) -> None: ...
+    @overload
+    def __setitem__(self, s: slice, v: Iterable[int]) -> None: ...
+    def __setitem__(self, key: int | slice, value: int | Iterable[int]) -> None:
         # if key > self.size:
         # 	raise IndexError('position {:x} is beyond size={:x}'.format(key, self.size))
-        if isinstance(value, Iterable):
-            self.backing_array[key : key + len(value)] = array.array("B", value)
+        if isinstance(key, slice):
+            if not isinstance(value, Iterable):
+                raise ValueError("need iter with slice")
+            x = list(value)
+            self.backing_array[key] = array.array("B", x)
         else:
+            if isinstance(value, Iterable):
+                raise ValueError("need int value with int indexing")
             self.backing_array[key] = value
 
 
-def get_panel_decoder(args, mem, io):
-    if args.panel.startswith("Elite 24"):
-        return WintexEliteDecoder(mem, io, 24)
-    else:
-        return WintexMemDecoder(mem, io)
-
-
 class WintexMemDecoder:
-    pass
+    def __init__(self, banner: str):
+        self.mem = bytearray()
+        self.io = bytearray()
+        self.banner: str = ""
+
+    def save(self, filename: str) -> None:
+        with open(filename, "wb") as f:
+            pickle.dump(self.banner, f, pickle.HIGHEST_PROTOCOL)
+            pickle.dump(self.mem, f, pickle.HIGHEST_PROTOCOL)
+            pickle.dump(self.io, f, pickle.HIGHEST_PROTOCOL)
+
+    def load(self, f) -> None:
+        self.mem = pickle.load(f)
+        self.io = pickle.load(f)
+
+    def decode(self) -> dict[str, Any]:
+        return {}
 
 
-class WintexEliteDecoder:
-    def __init__(self, mem, io, count=24):
+def get_panel_decoder(banner: str) -> WintexMemDecoder:
+    if banner.startswith("Elite 24"):
+        return WintexEliteDecoder(banner, 24)
+    else:
+        return WintexMemDecoder(banner)
+
+
+def panel_from_file(filename: str) -> WintexMemDecoder:
+    print(f"reading panel from {filename}")
+    with open(filename, "rb") as w:
+        banner: str = pickle.load(w)
+        panel = get_panel_decoder(banner)
+        panel.load(w)
+    return panel
+
+
+def get_bcd(mem: bytes, start: int, sz: int) -> str:
+    rgn = mem[start : start + sz]
+    return "".join(["{:01x}".format(x) for x in rgn])
+
+
+def get_ascii(mem: bytes, start: int, sz: int) -> str:
+    rgn = mem[start : start + sz].strip(b"\000")
+    return "".join([chr(x) for x in rgn])
+
+
+class WintexEliteDecoder(WintexMemDecoder):
+    def __init__(self, banner: str, zones: int):
         # Probably these can be determined from the panel type. These work for
         # a Premier Elite 24
-        self.zones = 24
+        self.zones = zones
         self.users = 25
         self.expanders = 2
         self.keypads = 4
         self.areas = 2
-        self.mem = mem
-        self.io = io
+        self.mem = bytearray(0x8000)
+        self.io = bytearray(0x2000)
+        self.banner = banner
 
-    def get_ascii(self, mem, start, sz):
-        rgn = mem[start : start + sz]
-        return "".join([chr(x) for x in rgn])
-
-    def get_bcd(self, mem, start, sz):
-        rgn = mem[start : start + sz]
-        return "".join(["{:02x}".format(x) for x in rgn])
-
-    def decode(self):
-        js = {}
+    def decode(self) -> dict[str, Any]:
+        js: dict[str, Any] = {}
         js["zones"] = self.decode_zones()
         js["users"] = self.decode_users()
         js["areas"] = self.decode_areas()
         js["config"] = {
-            "unique_id": self.get_bcd(self.mem, 0x005D04, 0x10),
-            "engineer_reset": self.get_ascii(self.mem, 0x001100, 32),
-            "anticode_reset": self.get_ascii(self.mem, 0x001120, 32),
-            "service_message": self.get_ascii(self.mem, 0x001140, 32),
-            "panel_location": self.get_ascii(self.mem, 0x001160, 32),
-            "banner_message": self.get_ascii(self.mem, 0x001180, 16),
-            "part_arm_header": self.get_ascii(self.mem, 0x001190, 16),
-            "part_arm1_message": self.get_ascii(self.mem, 0x001800, 16),
-            "part_arm2_message": self.get_ascii(self.mem, 0x001810, 16),
-            "part_arm3_message": self.get_ascii(self.mem, 0x001820, 16),
+            "unique_id": get_bcd(self.mem, 0x005D04, 0x10),
+            "engineer_reset": get_ascii(self.mem, 0x001100, 32),
+            "anticode_reset": get_ascii(self.mem, 0x001120, 32),
+            "service_message": get_ascii(self.mem, 0x001140, 32),
+            "panel_location": get_ascii(self.mem, 0x001160, 32),
+            "banner_message": get_ascii(self.mem, 0x001180, 16),
+            "part_arm_header": get_ascii(self.mem, 0x001190, 16),
+            "part_arm1_message": get_ascii(self.mem, 0x001800, 16),
+            "part_arm2_message": get_ascii(self.mem, 0x001810, 16),
+            "part_arm3_message": get_ascii(self.mem, 0x001820, 16),
         }
         js["area_suites"] = self.decode_area_suites()
         js["expanders"] = self.decode_expanders()
@@ -219,26 +274,27 @@ class WintexEliteDecoder:
             },
         }
         js["communications"] = {
-            "sms_centre1": self.get_ascii(self.mem, 0x001A30, 16),
-            "sms_centre2": self.get_ascii(self.mem, 0x001A40, 16),
+            "sms_centre1": get_ascii(self.mem, 0x001A30, 16),
+            "sms_centre2": get_ascii(self.mem, 0x001A40, 16),
         }
         js["virtualkeypad"] = {
-            "screen": self.get_ascii(self.io, 0x001196, 16),
-            "screen2": self.get_ascii(self.io, 0x0011A6, 16),
+            "screen": get_ascii(self.io, 0x001196, 16),
+            "screen2": get_ascii(self.io, 0x0011A6, 16),
             "leds": self.io[0x11B7],
         }
         js["keypads"] = self.decode_keypads()
         return js
 
-    def decode_users(self):
+    def decode_users(self) -> list[dict[str, Any]]:
         users = []
         # merge pincode buffers
-        pincode = array.array("B", self.mem[0x004190 : 0x004190 + 0x4B])
-        pincode.extend(self.mem[0x00630B : 0x00630B + 0x18])
+        pincode = (
+            self.mem[0x004190 : 0x004190 + 0x4B] + self.mem[0x00630B : 0x00630B + 0x18]
+        )
         for i in range(self.users):
             users.append(
                 {
-                    "name": self.get_ascii(self.mem, 0x004000 + 8 * i, 8).rstrip(),
+                    "name": get_ascii(self.mem, 0x004000 + 8 * i, 8).rstrip(),
                     "pincode": self.get_pincode(pincode, 3 * i),
                     "access_areas": self.mem[0x0042EE + i * 2],
                     "flags0": "{:02x}".format(self.mem[0x0042B6 + i]),
@@ -247,13 +303,13 @@ class WintexEliteDecoder:
             )
         return users
 
-    def decode_zones(self):
+    def decode_zones(self) -> list[dict[str, Any]]:
         zones = []
         for i in range(self.zones):
             zones.append(
                 {
-                    "name": self.get_ascii(self.mem, 0x005400 + i * 32, 16),
-                    "name2": self.get_ascii(self.mem, 0x005400 + i * 32 + 16, 16),
+                    "name": get_ascii(self.mem, 0x005400 + i * 32, 16),
+                    "name2": get_ascii(self.mem, 0x005400 + i * 32 + 16, 16),
                     "type": self.mem[0 + i],
                     "chime": self.mem[0x000030 + i],  # 00 off, 01, 02, 03 chime type
                     "area": self.mem[0x000060 + i],
@@ -264,17 +320,17 @@ class WintexEliteDecoder:
             )
         return zones
 
-    def decode_areas(self):
+    def decode_areas(self) -> list[dict[str, Any]]:
         areas = []
         for i in range(self.areas):
             areas.append(
                 {
-                    "text": self.get_ascii(self.mem, 0x0016A0 + i * 16, 16),
+                    "text": get_ascii(self.mem, 0x0016A0 + i * 16, 16),
                 }
             )
         return areas
 
-    def decode_expanders(self):
+    def decode_expanders(self) -> list[dict[str, Any]]:
         expanders = []
         # sounds is a bitmask, aux_input select byte value,
         # net expander area   aux_input sounds speaker_vol
@@ -283,7 +339,7 @@ class WintexEliteDecoder:
         for i in range(self.expanders):
             expanders.append(
                 {
-                    "location": self.get_ascii(self.mem, 0x000E50 + i * 16, 16),
+                    "location": get_ascii(self.mem, 0x000E50 + i * 16, 16),
                     "area": self.mem[0x000F50 + i * 2],
                     "aux_input": self.mem[0x000F70 + i],
                     "sounds": self.mem[0x000F80 + i],
@@ -292,7 +348,7 @@ class WintexEliteDecoder:
             )
         return expanders
 
-    def decode_keypads(self):
+    def decode_keypads(self) -> list[dict[str, Any]]:
         expanders = []
         # zones are literal bytes, volumne is displayed +1 in UI,
         # area are usual bitmask, sounds and options are bitmasks,
@@ -313,19 +369,19 @@ class WintexEliteDecoder:
             )
         return expanders
 
-    def decode_area_suites(self):
+    def decode_area_suites(self) -> list[dict[str, Any]]:
         suites = []
         for i in range(2):
             suites.append(
                 {
                     "id": i,
-                    "text": self.get_ascii(self.mem, 0x0005E8 + i * 16, 16),
+                    "text": get_ascii(self.mem, 0x0005E8 + i * 16, 16),
                     "arm_mode": "",
                     "areas": "",
                 }
             )
         return suites
 
-    def get_pincode(self, mem, offset):
-        x = mem[offset : offset + 3].tolist()
-        return "{:x}{:x}{:x}".format(*x).strip("def")
+    def get_pincode(self, mem: bytes, offset: int) -> str:
+        x = mem[offset : offset + 3]
+        return x.hex().strip("def")
