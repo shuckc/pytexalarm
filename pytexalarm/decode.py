@@ -15,9 +15,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument(
-        "--mem", help="read saved panel file", default=MEMFILE
-    )
+    parser.add_argument("--mem", help="read saved panel file", default=MEMFILE)
     parser.add_argument(
         "--json", help="dump json extracted data", default=False, action="store_true"
     )

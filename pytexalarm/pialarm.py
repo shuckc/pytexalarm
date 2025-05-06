@@ -4,6 +4,7 @@ from collections.abc import MutableSequence
 from types import TracebackType
 import array
 import pickle
+import io
 
 
 def printable(c: int, alt: Optional[str] = None) -> str:  # c should be int 0..255
@@ -155,7 +156,7 @@ class WintexMemDecoder:
             pickle.dump(self.mem, f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(self.io, f, pickle.HIGHEST_PROTOCOL)
 
-    def load(self, f) -> None:
+    def load(self, f: io.BufferedReader) -> None:
         self.mem = pickle.load(f)
         self.io = pickle.load(f)
 

@@ -2,7 +2,7 @@ import argparse
 import sys
 import json
 import os
-from typing import Iterable
+from typing import Any, Iterable
 
 from .pialarm import (
     SerialWintex,
@@ -19,7 +19,7 @@ from .pialarm import (
 
 # This class expects to be called on UDL responses stream, not UDL queries!
 class SerialWintexPanel(SerialWintex):
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.serial: str | None = None
         self.panel: WintexMemDecoder | None = None
