@@ -3,6 +3,7 @@ import json
 import os
 
 from .pialarm import panel_from_file
+from .hexdump import hexdump
 
 # reads a ser2net trace files from stdin and prints the high-level operations.
 # Optionally writes the implied contents of panel memory to MEMFILE
@@ -30,3 +31,9 @@ if __name__ == "__main__":
 
     if args.json:
         print(json.dumps(panel.decode(), indent=4))
+
+    print("Configuration memory:")
+    print(hexdump(panel.get_mem()))
+
+    print("State memory:")
+    print(hexdump(panel.get_io()))

@@ -7,7 +7,7 @@ from typing import Any, Iterable
 
 from .pialarm import (
     SerialWintex,
-    WintexMemDecoder,
+    PanelDecoder,
     get_bcd,
     get_panel_decoder,
 )
@@ -23,7 +23,7 @@ class SerialWintexPanel(SerialWintex):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.serial: str | None = None
-        self.panel: WintexMemDecoder | None = None
+        self.panel: PanelDecoder | None = None
 
     def handle_msg(self, body: bytes) -> None:
         # commands we will store and destination region
@@ -69,7 +69,7 @@ class SerialWintexIgnore(SerialWintex):
 
 def panel_from_ser2net_trace(
     stream: Iterable[str], debug: bool = False, verbose: bool = False
-) -> WintexMemDecoder | None:
+) -> PanelDecoder | None:
     term = SerialWintexPanel(direction="term", debug=debug, verbose=verbose)
     tcp = SerialWintexIgnore(direction="tcp", debug=debug, verbose=verbose)
 

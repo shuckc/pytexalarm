@@ -4,7 +4,7 @@ import json
 import jinja2
 from typing import Any
 
-from .pialarm import WintexMemDecoder, get_panel_decoder
+from .pialarm import PanelDecoder, get_panel_decoder
 
 
 @aiohttp_jinja2.template("template.jinja2")
@@ -37,7 +37,7 @@ async def handle_user_detail(request: web.Request) -> Any:
     return {"user": ""}
 
 
-def get_web_app(panel: WintexMemDecoder) -> web.Application:
+def get_web_app(panel: PanelDecoder) -> web.Application:
     app = web.Application()
     app.add_routes(
         [
@@ -53,7 +53,7 @@ def get_web_app(panel: WintexMemDecoder) -> web.Application:
     return app
 
 
-async def start_server(panel: WintexMemDecoder, web_port: int) -> web.AppRunner:
+async def start_server(panel: PanelDecoder, web_port: int) -> web.AppRunner:
     app = get_web_app(panel)
 
     runner = web.AppRunner(app)

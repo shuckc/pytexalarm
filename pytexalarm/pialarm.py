@@ -1,13 +1,10 @@
 from __future__ import annotations
-from typing import Iterable, Optional, overload, Any
-from collections.abc import MutableSequence
-from types import TracebackType
-import array
+from typing import Any
 import pickle
 import io
 
 
-def printable(c: int, alt: Optional[str] = None) -> str:  # c should be int 0..255
+def printable(c: int, alt: str | None = None) -> str:  # c should be int 0..255
     if alt is None:
         alt = "0x{:02x}".format(c)
     return chr(c) if str.isprintable(chr(c)) else alt
@@ -64,14 +61,14 @@ class SerialWintex:
         if self.verbose:
             print(f"  {self.direction:4s} {printable_type} {msg_hex} | {msg_ascii} ")
 
-    def parse_msg(self, msg: bytes) -> Optional[bytes]:
+    def parse_msg(self, msg: bytes) -> bytes | None:
         self.log_msg(msg)
         reply = self.handle_msg(msg)
         if reply:
             self.log_msg(reply)
         return reply
 
-    def handle_msg(self, body: bytes) -> Optional[bytes]:
+    def handle_msg(self, body: bytes) -> bytes | None:
         # subclass for handling logic
         raise ValueError()
 
@@ -80,75 +77,15 @@ class SerialWintex:
         pass
 
 
-class MemStore(MutableSequence[int]):
-    def __init__(self, filename: str, size: int = 0x0, file_offset: int = 0x0):
-        self.backing_file = None
-        self.file_offset = file_offset
-        self.size = size
-        self.backing_array = array.array("B", [0] * size)
-        try:
-            if filename is None:
-                raise RuntimeError("not backed by file")
-            self.backing_file = open(filename, mode="rb+")
-            self.backing_file.seek(file_offset)
-            self.backing_array = array.array("B", [])
-            self.backing_array.fromfile(self.backing_file, size)
-        except FileNotFoundError:
-            self.backing_file = open(filename, mode="wb+")
-        except EOFError:
-            # file on disk too small, we've also effectively truncated backing_array, oops
-            self.backing_array = array.array("B", [0] * size)
-        except Exception as e:
-            raise e
-
-    def __enter__(self) -> "MemStore":
-        return self
-
-    def __exit__(
-        self,
-        type_: type[BaseException] | None,
-        value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> bool | None:
-        if self.backing_file:
-            print(
-                f"Writing 0x{self.size:x} bytes to offet 0x{self.file_offset:x} within {self.backing_file}"
-            )
-            self.backing_file.seek(self.file_offset)
-            self.backing_array.tofile(self.backing_file)
-            self.backing_file.close()
-        return None
-
-    @overload
-    def __getitem__(self, i: int) -> int: ...
-    @overload
-    def __getitem__(self, s: slice) -> MutableSequence[int]: ...
-    def __getitem__(self, key: int | slice) -> int | MutableSequence[int]:
-        return self.backing_array[key]
-
-    @overload
-    def __setitem__(self, i: int, v: int) -> None: ...
-    @overload
-    def __setitem__(self, s: slice, v: Iterable[int]) -> None: ...
-    def __setitem__(self, key: int | slice, value: int | Iterable[int]) -> None:
-        # if key > self.size:
-        # 	raise IndexError('position {:x} is beyond size={:x}'.format(key, self.size))
-        if isinstance(key, slice):
-            if not isinstance(value, Iterable):
-                raise ValueError("need iter with slice")
-            x = list(value)
-            self.backing_array[key] = array.array("B", x)
-        else:
-            if isinstance(value, Iterable):
-                raise ValueError("need int value with int indexing")
-            self.backing_array[key] = value
+class UDLClient:
+    pass
 
 
-class WintexMemDecoder:
-    def __init__(self, banner: str):
-        self.mem = bytearray()
-        self.io = bytearray()
-        self.banner: str = ""
+class PanelDecoder:
+    def __init__(self, banner: str, memsz: int, iosz: int):
+        self.mem = bytearray(memsz)
+        self.io = bytearray(iosz)
+        self.banner: str = banner
 
     def save(self, filename: str) -> None:
         with open(filename, "wb") as f:
@@ -163,15 +100,27 @@ class WintexMemDecoder:
     def decode(self) -> dict[str, Any]:
         return {}
 
+    def get_mem(self) -> bytes:
+        return self.mem
 
-def get_panel_decoder(banner: str) -> WintexMemDecoder:
+    def get_io(self) -> bytes:
+        return self.io
+
+    def udl_read_with(self, client: UDLClient) -> None:
+        pass
+
+
+def get_panel_decoder(banner: str) -> PanelDecoder:
+    # Add extra panels here
     if banner.startswith("Elite 24"):
         return WintexEliteDecoder(banner, 24)
     else:
-        return WintexMemDecoder(banner)
+        # guess at something that might work
+        print(f"Unknown panel type {banner} - using large empty default")
+        return PanelDecoder(banner, 0x80000, 0x20000)
 
 
-def panel_from_file(filename: str) -> WintexMemDecoder:
+def panel_from_file(filename: str) -> PanelDecoder:
     print(f"reading panel from {filename}")
     with open(filename, "rb") as w:
         banner: str = pickle.load(w)
@@ -190,18 +139,16 @@ def get_ascii(mem: bytes, start: int, sz: int) -> str:
     return "".join([chr(x) for x in rgn])
 
 
-class WintexEliteDecoder(WintexMemDecoder):
+class WintexEliteDecoder(PanelDecoder):
     def __init__(self, banner: str, zones: int):
         # Probably these can be determined from the panel type. These work for
         # a Premier Elite 24
+        super().__init__(banner, 0x8000, 0x2000)
         self.zones = zones
         self.users = 25
         self.expanders = 2
         self.keypads = 4
         self.areas = 2
-        self.mem = bytearray(0x8000)
-        self.io = bytearray(0x2000)
-        self.banner = banner
 
     def decode(self) -> dict[str, Any]:
         js: dict[str, Any] = {}

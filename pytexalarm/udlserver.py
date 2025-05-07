@@ -7,7 +7,7 @@ from .pialarm import (
     SerialWintex,
     get_panel_decoder,
     panel_from_file,
-    WintexMemDecoder,
+    PanelDecoder,
     get_bcd,
 )
 
@@ -90,10 +90,10 @@ def hexbytes(data: bytes) -> str:
 
 
 class SerialWintexPanel(SerialWintex):
-    def __init__(self, panel: WintexMemDecoder, **kwargs: Any) -> None:
+    def __init__(self, panel: PanelDecoder, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.serial: bytes = b"\x01\x00\x07\x09\x04\x07\x01"
-        self.panel: WintexMemDecoder = panel
+        self.panel: PanelDecoder = panel
         self.outbound: list[bytes] = []
 
     def handle_msg(self, body: bytes) -> bytes | None:
@@ -195,7 +195,7 @@ class SerialWintexPanel(SerialWintex):
 
 
 async def udl_server(
-    panel: WintexMemDecoder,
+    panel: PanelDecoder,
     debug: bool,
     reader: asyncio.StreamReader,
     writer: asyncio.StreamWriter,
@@ -230,7 +230,7 @@ async def udl_server(
         raise
 
 
-async def interactive_shell(panel: WintexMemDecoder) -> None:
+async def interactive_shell(panel: PanelDecoder) -> None:
     """
     Provides a simple repl that allows interactive
     modification of the panel memory.
@@ -251,7 +251,7 @@ async def interactive_shell(panel: WintexMemDecoder) -> None:
 async def main() -> None:
     args = parser.parse_args()
 
-    panel: WintexMemDecoder
+    panel: PanelDecoder
     if args.banner:
         panel = get_panel_decoder(args.banner)
     elif args.mem:
