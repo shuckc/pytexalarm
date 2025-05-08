@@ -6,7 +6,7 @@ from typing import Any
 from aiohttp.test_utils import TestClient
 from pytest_aiohttp import AiohttpClient
 
-from pytexalarm.webpanel import get_web_app
+from pytexalarm.webapp import get_web_app
 from pytexalarm.pialarm import get_panel_decoder, PanelDecoder
 
 # $ pip install pytest-aiohttp
