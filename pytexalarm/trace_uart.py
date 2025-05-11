@@ -3,7 +3,7 @@ import argparse
 import sys
 import json
 import os
-from typing import Any, Iterable
+from typing import Any, Iterable, Tuple
 
 from .pialarm import (
     SerialWintex,
@@ -24,6 +24,7 @@ class SerialWintexPanel(SerialWintex):
         super().__init__(**kwargs)
         self.serial: str | None = None
         self.panel: PanelDecoder | None = None
+        self.mem_ranges: list[Tuple[int, int]] = []
 
     def handle_msg(self, body: bytes) -> None:
         # commands we will store and destination region
@@ -37,11 +38,6 @@ class SerialWintexPanel(SerialWintex):
             banner = body[1:].decode()
             print(f"detected panel banner {banner}")
             self.panel = get_panel_decoder(banner[0:10].strip())
-        elif not self.panel:
-            raise ValueError(
-                f"panel not identified by message {self.direction}/{mtype} {body!r}"
-            )
-
         elif self.panel:
             parts = {("term", "I"): self.panel.mem, ("term", "W"): self.panel.io}
             c = parts.get((self.direction, mtype), None)
@@ -52,6 +48,8 @@ class SerialWintexPanel(SerialWintex):
                 if sz + 5 != len(body):
                     raise Exception("IO length byte does not match msg payload sz")
                 c[base : base + sz] = payload
+                if mtype == "I":
+                    self.mem_ranges.append((base, sz))
                 # print(f"storing msg {mtype} payload={payload!r} to {base:02x}")
             elif mtype == "P":  # heartbeat
                 pass
@@ -60,6 +58,8 @@ class SerialWintexPanel(SerialWintex):
             else:
                 print(f"ignoring msg {self.direction}/{mtype} {body!r}")
             return None
+        else:
+            print(f"panel not identified at {self.direction}/{mtype} {body!r}")
 
 
 class SerialWintexIgnore(SerialWintex):
