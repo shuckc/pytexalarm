@@ -29,10 +29,15 @@ class SerialWintex:
             sz = self.buf[0]
             chk = self.checksum(self.buf[0:sz])
             if chk != 0:
-                print(
-                    f"Warning: bad checksum for {self.direction} at {self.buf}, emptying buffer"
-                )
-                del self.buf[:]
+                print(f"Warning: bad checksum for {self.direction} at {self.buf}")
+                # recover from 'ATZ\r' if found
+                try:
+                    rpos = self.buf.index(b"ATZ\r")
+                    print(f"removing before index {rpos}")
+                    del self.buf[: rpos + 4]
+                except ValueError:
+                    print("emptying buffer")
+                    del self.buf[:]
             else:
                 reply = self.parse_msg(
                     self.buf[1 : sz - 1]
