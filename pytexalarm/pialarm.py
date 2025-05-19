@@ -86,19 +86,32 @@ class UDLClient:
     pass
 
 
+FILE_MAGIC = b"pytexalarm\n"
+FILE_VERSION = b"1"
+
+
 class PanelDecoder:
     def __init__(self, banner: str, memsz: int, iosz: int):
         self.mem = bytearray(memsz)
         self.io = bytearray(iosz)
         self.banner: str = banner
+        self.serial: str = ""
+        self.udlpasswd: str = ""
 
     def save(self, filename: str) -> None:
         with open(filename, "wb") as f:
+            f.write(FILE_MAGIC)
+            f.write(FILE_VERSION)
             pickle.dump(self.banner, f, pickle.HIGHEST_PROTOCOL)
+            pickle.dump(self.serial, f, pickle.HIGHEST_PROTOCOL)
+            pickle.dump(self.udlpasswd, f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(self.mem, f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(self.io, f, pickle.HIGHEST_PROTOCOL)
+        print(f"wrote to {filename}")
 
     def load(self, f: io.BufferedReader) -> None:
+        self.serial = pickle.load(f)
+        self.udlpasswd = pickle.load(f)
         self.mem = pickle.load(f)
         self.io = pickle.load(f)
 
@@ -128,6 +141,12 @@ def get_panel_decoder(banner: str) -> PanelDecoder:
 def panel_from_file(filename: str) -> PanelDecoder:
     print(f"reading panel from {filename}")
     with open(filename, "rb") as w:
+        magic = w.read(len(FILE_MAGIC))
+        if magic != FILE_MAGIC:
+            raise Exception("Unsuported file format")
+        version = w.read(len(FILE_VERSION))
+        if version != FILE_VERSION:
+            raise Exception("Unsuported file version")
         banner: str = pickle.load(w)
         panel = get_panel_decoder(banner)
         panel.load(w)

@@ -69,6 +69,10 @@ def extract_tcp_udl_streams(
             else:
                 print(f"Not UDL port: {tcp}")
 
+    # we learn udlpasswd from client side of the conversation
+    if term.panel and tcps.udlpasswd:
+        term.panel.udlpasswd = tcps.udlpasswd
+
     if verbose:
         print("Raw read ranges:")
         print(term.mem_ranges)

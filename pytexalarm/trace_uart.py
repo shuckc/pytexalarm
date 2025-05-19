@@ -36,8 +36,10 @@ class SerialWintexPanel(SerialWintex):
             print(f"detected serial {self.serial}")
         elif mtype == "Z" and self.panel is None:
             banner = body[1:].decode()
-            print(f"detected panel banner {banner}")
-            self.panel = get_panel_decoder(banner[0:10].strip())
+            print(f"detected panel banner '{banner}'")
+            self.panel = get_panel_decoder(banner)
+            if self.serial:
+                self.panel.serial = self.serial  # we learnt this prior
         elif self.panel:
             parts = {("term", "I"): self.panel.mem, ("term", "W"): self.panel.io}
             c = parts.get((self.direction, mtype), None)
