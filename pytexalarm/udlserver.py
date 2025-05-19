@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 from itertools import count
+from . import DEFAULT_MEMFILE
 from .pialarm import (
     SerialWintex,
     get_panel_decoder,
@@ -13,7 +14,6 @@ from .pialarm import (
 
 from .webapp import start_server
 from functools import partial
-import os
 from typing import Any
 
 from prompt_toolkit.patch_stdout import patch_stdout
@@ -21,7 +21,6 @@ from prompt_toolkit.shortcuts import PromptSession
 
 PORT = 10001
 WEBPORT = 10002
-MEMFILE = os.path.expanduser(os.path.join("~", "alarmpanel.cfg"))
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument(
@@ -36,7 +35,7 @@ parser.add_argument(
     "--debug", help="Print bytes on wire", action="store_true", default=False
 )
 parser.add_argument(
-    "--mem", help="read/write panel config from MEMFILE", default=MEMFILE
+    "--mem", help="read/write panel config from MEMFILE", default=DEFAULT_MEMFILE
 )
 parser.add_argument("--udl-port", help="UDL port", default=PORT, type=int)
 parser.add_argument("--udl-password", help="UDL password", default="1234")

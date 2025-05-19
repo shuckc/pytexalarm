@@ -3,10 +3,10 @@ from __future__ import annotations
 from scapy.all import PcapNgReader
 from scapy.layers.inet import IP, TCP
 import argparse
-import os
 import json
 from typing import cast, Tuple
 
+from . import DEFAULT_MEMFILE
 from .pialarm import PanelDecoder
 from .trace_uart import SerialWintexPanel, SerialWintexIgnore
 
@@ -79,7 +79,6 @@ def extract_tcp_udl_streams(
 
 
 def main() -> None:
-    MEMFILE = os.path.expanduser(os.path.join("~", "alarmpanel.cfg"))
     parser = argparse.ArgumentParser(
         description="Extract UDL stream payloads from pcapng"
     )
@@ -88,7 +87,9 @@ def main() -> None:
     parser.add_argument("--dst-ip", help="Server IP address")
     parser.add_argument("--udl-port", type=int, default=10001, help="UDL port")
     parser.add_argument(
-        "--mem", help="write observed values to MEMFILE in position", default=MEMFILE
+        "--mem",
+        help="write observations to MEMFILE",
+        default=DEFAULT_MEMFILE,
     )
     parser.add_argument(
         "--json", help="dump json extracted data", default=False, action="store_true"

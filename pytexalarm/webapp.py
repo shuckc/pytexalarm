@@ -2,11 +2,11 @@ from aiohttp import web
 import aiohttp_jinja2
 import json
 import jinja2
-import os
 import argparse
 from typing import Any
 from .hexdump import hexdump
 from .pialarm import PanelDecoder, get_panel_decoder, panel_from_file
+from . import DEFAULT_MEMFILE
 
 
 @aiohttp_jinja2.template("config.jinja2")
@@ -62,12 +62,10 @@ async def start_server(panel: PanelDecoder, web_port: int) -> web.AppRunner:
 
 
 if __name__ == "__main__":
-    MEMFILE = os.path.expanduser(os.path.join("~", "alarmpanel.cfg"))
-
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument("--mem", help="read saved panel file", default=MEMFILE)
+    parser.add_argument("--mem", help="read saved panel file", default=DEFAULT_MEMFILE)
     parser.add_argument("--banner", help="empty panel from banner")
     args = parser.parse_args()
 

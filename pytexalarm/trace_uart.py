@@ -2,9 +2,9 @@ from __future__ import annotations
 import argparse
 import sys
 import json
-import os
 from typing import Any, Iterable, Tuple
 
+from . import DEFAULT_MEMFILE
 from .pialarm import (
     SerialWintex,
     PanelDecoder,
@@ -63,8 +63,16 @@ class SerialWintexPanel(SerialWintex):
 
 
 class SerialWintexIgnore(SerialWintex):
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.udlpasswd: str | None = None
+
     def handle_msg(self, body: bytes) -> None:
-        return None
+        mtype: str = body[0:1].decode()  # first char should be printable
+
+        if mtype == "Z" and len(body) > 1:
+            self.udlpasswd = body[1:].rstrip(b"\00").decode()
+            print(f"detected UDL password {self.udlpasswd}")
 
 
 def panel_from_ser2net_trace(
@@ -91,8 +99,6 @@ def panel_from_ser2net_trace(
 
 
 if __name__ == "__main__":
-    MEMFILE = os.path.expanduser(os.path.join("~", "alarmpanel.cfg"))
-
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
@@ -103,7 +109,9 @@ if __name__ == "__main__":
         "--debug", help="Print bytes on wire", action="store_true", default=False
     )
     parser.add_argument(
-        "--mem", help="write observed values to MEMFILE in position", default=MEMFILE
+        "--mem",
+        help="write observations to MEMFILE",
+        default=DEFAULT_MEMFILE,
     )
     parser.add_argument(
         "--json", help="dump json extracted data", default=False, action="store_true"

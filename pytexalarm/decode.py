@@ -1,7 +1,7 @@
 import argparse
 import json
-import os
 
+from . import DEFAULT_MEMFILE
 from .pialarm import panel_from_file
 from .hexdump import hexdump
 
@@ -11,12 +11,10 @@ from .hexdump import hexdump
 # e.g. $ cat traces/wintex-ser2net/*.trace | python -m pytexalarm.trace2op --mem blob.mem --json
 
 if __name__ == "__main__":
-    MEMFILE = os.path.expanduser(os.path.join("~", "alarmpanel.cfg"))
-
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument("--mem", help="read saved panel file", default=MEMFILE)
+    parser.add_argument("--mem", help="read saved panel file", default=DEFAULT_MEMFILE)
     parser.add_argument(
         "--json", help="dump json extracted data", default=False, action="store_true"
     )
