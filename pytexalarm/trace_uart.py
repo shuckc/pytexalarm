@@ -5,8 +5,8 @@ import json
 from typing import Any, Iterable, Tuple
 
 from . import DEFAULT_MEMFILE
+from .udl import SerialWintex
 from .pialarm import (
-    SerialWintex,
     PanelDecoder,
     get_bcd,
     get_panel_decoder,

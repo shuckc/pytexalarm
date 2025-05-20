@@ -4,8 +4,8 @@ import argparse
 import asyncio
 from itertools import count
 from . import DEFAULT_MEMFILE
+from .udl import SerialWintex
 from .pialarm import (
-    SerialWintex,
     get_panel_decoder,
     panel_from_file,
     PanelDecoder,

@@ -2,6 +2,10 @@
 from typing import Iterator
 
 
+def printable(c: int) -> str:  # c should be int 0..255
+    return chr(c) if 32 <= c < 127 else "."
+
+
 class hexdump:
     def __init__(self, buf: bytes, off: int = 0, ind: int = 0):
         self.buf = buf
