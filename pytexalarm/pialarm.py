@@ -13,6 +13,33 @@ def printable(c: int, alt: str | None = None) -> str:  # c should be int 0..255
 # speak the UDL low-level protocol. Recieve frames in 'on_byes', buffer until the next header's length
 # is available, validate CRC and then pass to parse_msg. If a reply is produced, add length prefix and CRC
 # then pass this to subclass 'send_bytes'.
+def udl_checksum(data: bytes) -> int:
+    sz = data[0]
+    if sz != len(data):
+        raise ValueError("length does not match framing!")
+    # subtract each byte from 0xff
+    v = 255
+    for b in data:
+        v -= b
+    return v % 256
+
+
+def udl_frame(msg: bytes) -> bytes:
+    msglen = len(msg)
+    if msglen > 253:
+        raise ValueError("Cannot frame overlong message")
+    data = bytearray(msglen + 2)
+    data[0] = msglen + 2
+    data[1 : msglen + 1] = msg
+    data[msglen + 1] = udl_checksum(data)
+    # assert udl_verify(data) == 0
+    return data
+
+
+def udl_verify(data: bytes) -> bool:
+    return udl_checksum(data) == 0
+
+
 class SerialWintex:
     def __init__(self, direction: str = "", verbose: bool = False, debug: bool = False):
         self.buf = bytearray()
@@ -27,9 +54,18 @@ class SerialWintex:
         # have we a full message in this direction
         while len(self.buf) > 0 and len(self.buf) >= self.buf[0]:
             sz = self.buf[0]
-            chk = self.checksum(self.buf[0:sz])
-            if chk != 0:
-                print(f"Warning: bad checksum for {self.direction} at {self.buf}")
+            msg = self.buf[0:sz]
+            if udl_verify(msg):
+                self.log_msg(msg)
+                # handle_msg does not need (or return) length and checksum
+                reply = self.handle_msg(msg[1 : sz - 1])
+                if reply:
+                    omsg = udl_frame(reply)
+                    self.log_msg(reply)
+                    self.send_bytes(omsg)
+                del self.buf[0:sz]
+            else:
+                print(f"Warning: bad UDL checksum for {self.direction} at {self.buf}")
                 # recover from 'ATZ\r' if found
                 try:
                     rpos = self.buf.index(b"ATZ\r")
@@ -38,25 +74,6 @@ class SerialWintex:
                 except ValueError:
                     print("emptying buffer")
                     del self.buf[:]
-            else:
-                reply = self.parse_msg(
-                    self.buf[1 : sz - 1]
-                )  # parser does not need length or checksum
-                if reply:
-                    msg = bytearray()
-                    msg.insert(0, len(reply) + 2)  # prepend size, len(msg)+chk+sz
-                    msg.extend(reply)
-                    checksum = self.checksum(msg)
-                    msg.append(checksum)
-                    self.send_bytes(msg)
-                del self.buf[0:sz]
-
-    def checksum(self, msg: bytes) -> int:
-        # subtract each byte from 0xff
-        v = 255
-        for b in msg:
-            v -= b
-        return v % 256
 
     def log_msg(self, msg: bytes) -> None:
         mtype = msg[0]
@@ -65,13 +82,6 @@ class SerialWintex:
         msg_ascii = "".join(printable(c, alt=".") for c in msg[1:])
         if self.verbose:
             print(f"  {self.direction:4s} {printable_type} {msg_hex} | {msg_ascii} ")
-
-    def parse_msg(self, msg: bytes) -> bytes | None:
-        self.log_msg(msg)
-        reply = self.handle_msg(msg)
-        if reply:
-            self.log_msg(reply)
-        return reply
 
     def handle_msg(self, body: bytes) -> bytes | None:
         # subclass for handling logic
