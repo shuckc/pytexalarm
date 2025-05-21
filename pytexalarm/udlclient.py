@@ -38,12 +38,26 @@ class AsyncioUDLClient(UDLClient):
 
     @classmethod
     async def create(
-        cls, host: str, udlpasswd: str, port: int = 10001, serial: Optional[str] = None
+        cls,
+        host: str,
+        udlpasswd: str,
+        port: int = 10001,
+        serial: Optional[str] = None,
+        stupid_delay: int = 2,
     ) -> "AsyncioUDLClient":
+        # reader, writer = await asyncio.open_connection(host, port, local_addr=('0.0.0.0', 41525))
         reader, writer = await asyncio.open_connection(host, port)
 
-        instance = cls(reader, writer, udlpasswd, serial)
-        return instance
+        # wintex does not send the login for 2 seconds after connection.
+        # If you don't include this delay, 'early' login headers get lost within the IP Com or
+        # smartcom while it is setting up the serial port side, so the panel closes the socket
+        # after a delay.
+        # I am genuinely at a loss as to the kind of implementation shenanigans that must be
+        # pulled to require this. TCP is a strongly sequenced, recoverable stream. And equally
+        # embarrased how long this took to figure out...
+        await asyncio.sleep(stupid_delay)
+
+        return cls(reader, writer, udlpasswd, serial)
 
     async def close(self) -> None:
         self.writer.close()
