@@ -251,10 +251,12 @@ async def main() -> None:
     args = parser.parse_args()
 
     panel: PanelDecoder
-    if args.banner:
-        panel = get_panel_decoder(args.banner)
-    elif args.mem:
+    if args.mem:
+        print(f"Reading from {args.mem}")
         panel = panel_from_file(args.mem)
+    elif args.banner:
+        print("Defaulting from banner")
+        panel = get_panel_decoder(args.banner)
     else:
         raise ValueError("Supply panel banner or file!")
 

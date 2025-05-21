@@ -4,7 +4,7 @@ from enum import Flag, auto
 import pickle
 import io
 
-from .udl import UDLClient
+from .udl import UDLClient, uncompact_ranges
 
 
 # configuraable things that you can read or write somewhat atomicaly
@@ -293,3 +293,43 @@ class WintexEliteDecoder(PanelDecoder):
     def get_pincode(self, mem: bytes, offset: int) -> str:
         x = mem[offset : offset + 3]
         return x.hex().strip("def")
+
+    def udl_reads_for(self, topics: UDLTopics) -> List[Tuple[int, int]]:
+        # common reads (unique ID)
+        reads = [
+            (25755, 16),
+            (23812, 16),
+            (5752, 1),
+            (8138, 7),
+            (5758, 1),
+            (23637, 2),
+            (23639, 2),
+        ]
+
+        if UDLTopics.ZONES in topics:
+            reads.extend(
+                [
+                    (0, 24),
+                    (48, 24),
+                    (96, 24),
+                    (144, 24),
+                    (192, 48),
+                    (21504, 768),
+                    (2496, 160),
+                    (1768, 16),
+                    (21280, 100),
+                    (2408, 48),
+                    (1800, 24),
+                    (23468, 24),
+                    (20970, 48),
+                    (23837, 204),
+                ]
+            )
+        return reads
+
+    async def udl_read_with(self, client: UDLClient, topics: UDLTopics) -> None:
+        # do the work
+        for base, sz in uncompact_ranges(self.udl_reads_for(topics)):
+            bs = await client.read_mem(base, sz)
+            print(bs)
+            self.mem[base : base + sz] = bs

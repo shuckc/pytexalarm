@@ -1,4 +1,4 @@
-from typing import Protocol, Tuple
+from typing import Optional, Protocol, Tuple
 from .hexdump import printable
 
 
@@ -34,6 +34,7 @@ def udl_verify(data: bytes) -> bool:
 
 class UDLClient(Protocol):
     async def read_mem(self, base: int, sz: int) -> bytes: ...
+    async def read_identification(self) -> str: ...
 
 
 class SerialWintex:
@@ -79,7 +80,7 @@ class SerialWintex:
         if self.verbose:
             print(f"  {self.direction:4s} {printable_type} {msg_hex} | {msg_ascii} ")
 
-    def handle_msg(self, body: bytes) -> bytes | None:
+    def handle_msg(self, body: bytes) -> Optional[bytes]:
         # subclass for handling logic
         raise ValueError()
 
@@ -96,7 +97,7 @@ class SerialWintex:
 def compact_ranges(mem_ranges: list[Tuple[int, int]]) -> list[Tuple[int, int]]:
     # post-process contiguous reads of 64-bytes into a single read
     compacted = []
-    last: None | tuple[int, int] = None
+    last: Optional[tuple[int, int]] = None
     for base, sz in mem_ranges:
         if last:
             if base == last[0] + last[1]:  # read starts from last
