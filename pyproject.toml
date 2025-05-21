@@ -4,6 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 
+[tool.setuptools]
+packages = ["pytexalarm"]
+
 [tool.ruff.lint]
 extend-select = ["I"]
 
@@ -26,10 +29,11 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 dynamic = ["version"]
+license = "MIT"
+
 
 [project.urls]
 Homepage = "https://github.com/shuckc/pytexalarm"

@@ -1,5 +1,8 @@
+![Python versions](https://img.shields.io/pypi/pyversions/pytexalarm.svg) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/shuckc/pytexalarm/check.yml) [![PyPI version](https://badge.fury.io/py/pytexalarm.svg)](https://badge.fury.io/py/pytexalarm)
+
 # pytexalarm
-This repository contains scripts to speak to (and impersonate) a Texecom alarm panel UDL protocol over either UART serial or TCP ports. The project implements some of the functionality of Wintex, the Texecom windows-based configuration tool. It can dump the configuration from a panel, decode it and expose through a web browser.
+
+This repository contains pyhton code to speak to (and impersonate) a Texecom alarm panel UDL protocol over either UART serial or TCP ports. The project implements some of the functionality of Wintex, the Texecom windows-based configuration tool. It can dump the configuration from a panel, decode it and expose through a web browser.
 
 ## Quickstart - Running a virtual panel
 
