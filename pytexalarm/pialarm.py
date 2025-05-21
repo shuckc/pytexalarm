@@ -3,8 +3,12 @@ from typing import Any, List, Tuple
 from enum import Flag, auto
 import pickle
 import io
+import inspect
 
 from .udl import UDLClient, uncompact_ranges
+
+from prompt_toolkit.patch_stdout import patch_stdout
+from prompt_toolkit.shortcuts import PromptSession
 
 
 # configuraable things that you can read or write somewhat atomicaly
@@ -333,3 +337,30 @@ class WintexEliteDecoder(PanelDecoder):
             bs = await client.read_mem(base, sz)
             print(bs)
             self.mem[base : base + sz] = bs
+
+
+
+async def interactive_shell(panel: PanelDecoder, **kwargs: Any) -> None:
+    """
+    Provides a simple repl that allows interactive
+    modification of the panel memory.
+    """
+    with patch_stdout():
+
+        session: PromptSession[str] = PromptSession("(eval) > ")
+
+        # Run echo loop. Read text from stdin, and reply it back.
+        while True:
+            try:
+                pinput = await session.prompt_async()
+                r = eval(pinput, {"panel": panel, **kwargs})
+                if r:
+                    if inspect.isawaitable(r):
+                        print('got coro')
+                        print(await r)
+                    else:
+                        print(r)
+            except (EOFError, KeyboardInterrupt):
+                return
+            except Exception as ex:
+                print(str(ex))

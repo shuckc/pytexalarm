@@ -10,14 +10,12 @@ from .pialarm import (
     panel_from_file,
     PanelDecoder,
     get_bcd,
+    interactive_shell,
 )
 
 from .webapp import start_server
 from functools import partial
 from typing import Any
-
-from prompt_toolkit.patch_stdout import patch_stdout
-from prompt_toolkit.shortcuts import PromptSession
 
 PORT = 10001
 WEBPORT = 10002
@@ -229,23 +227,6 @@ async def udl_server(
         raise
 
 
-async def interactive_shell(panel: PanelDecoder) -> None:
-    """
-    Provides a simple repl that allows interactive
-    modification of the panel memory.
-    """
-    session: PromptSession[str] = PromptSession("(eval) > ")
-
-    # Run echo loop. Read text from stdin, and reply it back.
-    while True:
-        try:
-            pinput = await session.prompt_async()
-            exec(pinput, {"panel": panel})
-        except (EOFError, KeyboardInterrupt):
-            return
-        except Exception as ex:
-            print(str(ex))
-
 
 async def main() -> None:
     args = parser.parse_args()
@@ -264,21 +245,19 @@ async def main() -> None:
         f"Panel type '{panel}' with UDL password {args.udl_password} backed by file {args.mem}"
     )
 
-    with patch_stdout():
-        server = await asyncio.start_server(
-            partial(udl_server, panel, args.debug), None, args.udl_port
-        )
-        addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
-        print(f"Serving UDL on {addrs}")
+    server = await asyncio.start_server(
+        partial(udl_server, panel, args.debug), None, args.udl_port
+    )
+    addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
+    print(f"Serving UDL on {addrs}")
 
-        if args.web_port > 0:
-            await start_server(panel, args.web_port)
+    if args.web_port > 0:
+        await start_server(panel, args.web_port)
 
-        try:
-            await interactive_shell(panel)
-        except Exception as e:
-            print(e)
-        print("Quitting event loop. Bye.")
+    try:
+        await interactive_shell(panel, server=server)
+    except Exception as e:
+        print(e)
 
 
 asyncio.run(main())

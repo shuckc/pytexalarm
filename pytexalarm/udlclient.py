@@ -8,6 +8,7 @@ from .pialarm import (
     get_bcd,
     get_panel_decoder,
     UDLTopics,
+    interactive_shell
 )
 
 CMD_LOGIN = 0x5A  # Z
@@ -136,6 +137,11 @@ async def main() -> None:
 
         if args.mem:
             panel.save(args.mem)
+
+        try:
+            await interactive_shell(panel, client=client, UDLTopics=UDLTopics)
+        except Exception as e:
+            print(e)
 
     finally:
         await client.close()
