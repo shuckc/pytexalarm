@@ -1,13 +1,25 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, List, Tuple
+from enum import Flag, auto
 import pickle
 import io
 
 from .udl import UDLClient
 
 
-class UDLClient:
-    pass
+# configuraable things that you can read or write somewhat atomicaly
+# from the panel
+class UDLTopics(Flag):
+    ZONES = auto()
+    AREAS = auto()
+    GLOBAL = auto()
+    KEYPADS = auto()
+    EXPANDERS = auto()
+    OUTPUTS = auto()
+    COMMS = auto()
+    USERS = auto()
+    LOGS = auto()
+    ALL = ZONES | AREAS | GLOBAL | KEYPADS | EXPANDERS | OUTPUTS | COMMS | USERS | LOGS
 
 
 FILE_MAGIC = b"pytexalarm\n"
@@ -48,7 +60,7 @@ class PanelDecoder:
     def get_io(self) -> bytes:
         return self.io
 
-    def udl_read_with(self, client: UDLClient) -> None:
+    async def udl_read_with(self, client: UDLClient, topics: UDLTopics) -> None:
         pass
 
 

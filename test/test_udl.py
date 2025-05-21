@@ -1,7 +1,7 @@
 import pytest
 
-
-from pytexalarm.pialarm import udl_verify, udl_frame
+import random
+from pytexalarm.udl import udl_verify, udl_frame, compact_ranges, uncompact_ranges
 
 
 def test_checksum() -> None:
@@ -30,3 +30,25 @@ def test_frame() -> None:
     assert udl_frame(b"Z") == b"\x03Z\xa2"
     assert udl_frame(b"P") == b"\x03P\xac"
     assert udl_frame(b"ZElite 24    V6.05.03") == b"\x17ZElite 24    V6.05.03\xe5"
+
+
+@pytest.fixture
+def notrandom() -> None:
+    random.seed(0)
+
+
+def test_compact_uncompact_ranges(notrandom: None) -> None:
+    assert compact_ranges([(1, 1)]) == [(1, 1)]
+    assert compact_ranges([(1, 1), (2, 2)]) == [(1, 1), (2, 2)]
+    assert compact_ranges([(0, 64), (64, 16)]) == [(0, 80)]
+    assert uncompact_ranges([(0, 80)]) == [(0, 64), (64, 16)]
+
+    for i in range(100):
+        c = random.randrange(10)
+        gs = []
+        for _ in range(c):
+            sz = random.randrange(0xFFFF)
+            base = random.randrange(0xFFFFFF)
+            gs.append((base, sz))
+        print(gs)
+        assert compact_ranges(uncompact_ranges(gs)) == gs

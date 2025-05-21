@@ -4,31 +4,12 @@ from scapy.all import PcapNgReader
 from scapy.layers.inet import IP, TCP
 import argparse
 import json
-from typing import cast, Tuple
+from typing import cast
 
 from . import DEFAULT_MEMFILE
 from .pialarm import PanelDecoder
 from .trace_uart import SerialWintexPanel, SerialWintexIgnore
-
-
-def compact_ranges(mem_ranges: list[Tuple[int, int]]) -> list[Tuple[int, int]]:
-    # post-process contiguous reads of 64-bytes into a single read
-    compacted = []
-    last: None | tuple[int, int] = None
-    for base, sz in mem_ranges:
-        if last:
-            if base == last[0] + last[1]:  # read starts from last
-                last = (last[0], last[1] + sz)
-                continue
-            compacted.append(last)
-            last = None
-        if sz < 64:
-            compacted.append((base, sz))
-        else:
-            last = (base, sz)
-    if last:
-        compacted.append(last)
-    return compacted
+from .udl import compact_ranges
 
 
 def extract_tcp_udl_streams(

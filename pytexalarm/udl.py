@@ -86,3 +86,39 @@ class SerialWintex:
     def send_bytes(self, msg: bytes) -> None:
         # optional subclass if sending replies
         pass
+
+
+# UDL memory/io read and writes over 64 bytes are split into 64-byte ranges.
+# to reduce the boilerplate storing the smaller ranges, we can compact/uncompact
+# them into equivelent larger ranges.
+#  invarient:  uncompact_ranges(compact_ranges(ranges)) == ranges
+#
+def compact_ranges(mem_ranges: list[Tuple[int, int]]) -> list[Tuple[int, int]]:
+    # post-process contiguous reads of 64-bytes into a single read
+    compacted = []
+    last: None | tuple[int, int] = None
+    for base, sz in mem_ranges:
+        if last:
+            if base == last[0] + last[1]:  # read starts from last
+                last = (last[0], last[1] + sz)
+                continue
+            compacted.append(last)
+            last = None
+        if sz < 64:
+            compacted.append((base, sz))
+        else:
+            last = (base, sz)
+    if last:
+        compacted.append(last)
+    return compacted
+
+
+def uncompact_ranges(mem_ranges: list[Tuple[int, int]]) -> list[Tuple[int, int]]:
+    uncompacted = []
+    for base, sz in mem_ranges:
+        while sz > 64:
+            uncompacted.append((base, 64))
+            sz = sz - 64
+            base = base + 64
+        uncompacted.append((base, sz))
+    return uncompacted
