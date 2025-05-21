@@ -1,13 +1,12 @@
-import pytest
-import pytest_asyncio
-
 from typing import Any
 
+import pytest
+import pytest_asyncio
 from aiohttp.test_utils import TestClient
 from pytest_aiohttp import AiohttpClient
 
+from pytexalarm.pialarm import PanelDecoder, get_panel_decoder
 from pytexalarm.webapp import get_web_app
-from pytexalarm.pialarm import get_panel_decoder, PanelDecoder
 
 # $ pip install pytest-aiohttp
 

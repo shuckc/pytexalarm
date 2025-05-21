@@ -1,4 +1,5 @@
 from typing import Optional, Protocol, Tuple
+
 from .hexdump import printable
 
 

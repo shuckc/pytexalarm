@@ -1,12 +1,14 @@
-from aiohttp import web
-import aiohttp_jinja2
-import json
-import jinja2
 import argparse
+import json
 from typing import Any
+
+import aiohttp_jinja2
+import jinja2
+from aiohttp import web
+
+from . import DEFAULT_MEMFILE
 from .hexdump import hexdump
 from .pialarm import PanelDecoder, get_panel_decoder, panel_from_file
-from . import DEFAULT_MEMFILE
 
 
 @aiohttp_jinja2.template("config.jinja2")

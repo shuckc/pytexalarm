@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from scapy.all import PcapNgReader
-from scapy.layers.inet import IP, TCP
 import argparse
 import json
 from typing import cast
 
+from scapy.all import PcapNgReader
+from scapy.layers.inet import IP, TCP
+
 from . import DEFAULT_MEMFILE
 from .pialarm import PanelDecoder
-from .trace_uart import SerialWintexPanel, SerialWintexIgnore
+from .trace_uart import SerialWintexIgnore, SerialWintexPanel
 from .udl import compact_ranges
 
 

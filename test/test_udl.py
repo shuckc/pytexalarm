@@ -1,7 +1,8 @@
+import random
+
 import pytest
 
-import random
-from pytexalarm.udl import udl_verify, udl_frame, compact_ranges, uncompact_ranges
+from pytexalarm.udl import compact_ranges, udl_frame, udl_verify, uncompact_ranges
 
 
 def test_checksum() -> None:

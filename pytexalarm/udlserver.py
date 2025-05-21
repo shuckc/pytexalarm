@@ -1,21 +1,22 @@
 #!/usr/bin/env python
 from __future__ import annotations
+
 import argparse
 import asyncio
+from functools import partial
 from itertools import count
+from typing import Any
+
 from . import DEFAULT_MEMFILE
-from .udl import SerialWintex
 from .pialarm import (
-    get_panel_decoder,
-    panel_from_file,
     PanelDecoder,
     get_bcd,
+    get_panel_decoder,
     interactive_shell,
+    panel_from_file,
 )
-
+from .udl import SerialWintex
 from .webapp import start_server
-from functools import partial
-from typing import Any
 
 PORT = 10001
 WEBPORT = 10002

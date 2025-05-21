@@ -1,16 +1,17 @@
 from __future__ import annotations
+
 import argparse
-import sys
 import json
+import sys
 from typing import Any, Iterable, Tuple
 
 from . import DEFAULT_MEMFILE
-from .udl import SerialWintex
 from .pialarm import (
     PanelDecoder,
     get_bcd,
     get_panel_decoder,
 )
+from .udl import SerialWintex
 
 # reads a ser2net trace files from stdin and prints the high-level operations.
 # Optionally writes the implied contents of panel memory to MEMFILE

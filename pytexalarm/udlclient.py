@@ -1,10 +1,10 @@
-import asyncio
-from typing import Optional
 import argparse
+import asyncio
+import json
+from typing import Optional
 
-from .udl import udl_frame, udl_verify, UDLClient
-
-from .pialarm import get_bcd, get_panel_decoder, UDLTopics, interactive_shell
+from .pialarm import UDLTopics, get_bcd, get_panel_decoder, interactive_shell
+from .udl import UDLClient, udl_frame, udl_verify
 
 CMD_LOGIN = 0x5A  # Z
 CMD_READ = 0x4F  # 'O'
@@ -43,7 +43,7 @@ class AsyncioUDLClient(UDLClient):
         udlpasswd: str,
         port: int = 10001,
         serial: Optional[str] = None,
-        stupid_delay: int = 2,
+        stupid_delay: float = 2.0,
     ) -> "AsyncioUDLClient":
         # reader, writer = await asyncio.open_connection(host, port, local_addr=('0.0.0.0', 41525))
         reader, writer = await asyncio.open_connection(host, port)
@@ -126,6 +126,9 @@ async def main() -> None:
         "--serial", help="expected pannel seral challenge", default=None
     )
     parser.add_argument("--mem", help="write panel config to MEMFILE", default=None)
+    parser.add_argument(
+        "--json", help="dump json extracted data", default=False, action="store_true"
+    )
     args = parser.parse_args()
 
     client = await AsyncioUDLClient.create(
@@ -148,10 +151,13 @@ async def main() -> None:
         if args.mem:
             panel.save(args.mem)
 
-        try:
-            await interactive_shell(panel, client=client, UDLTopics=UDLTopics)
-        except Exception as e:
-            print(e)
+        if args.json:
+            print(json.dumps(panel.decode(), indent=4))
+        else:
+            try:
+                await interactive_shell(panel, client=client, UDLTopics=UDLTopics)
+            except Exception as e:
+                print(e)
 
     finally:
         await client.close()

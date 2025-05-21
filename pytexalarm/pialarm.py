@@ -1,14 +1,15 @@
 from __future__ import annotations
-from typing import Any, List, Tuple
-from enum import Flag, auto
-import pickle
-import io
-import inspect
 
-from .udl import UDLClient, uncompact_ranges
+import inspect
+import io
+import pickle
+from enum import Flag, auto
+from typing import Any, List, Tuple
 
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.shortcuts import PromptSession
+
+from .udl import UDLClient, uncompact_ranges
 
 
 # configuraable things that you can read or write somewhat atomicaly

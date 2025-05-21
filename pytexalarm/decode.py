@@ -2,8 +2,8 @@ import argparse
 import json
 
 from . import DEFAULT_MEMFILE
-from .pialarm import panel_from_file
 from .hexdump import hexdump
+from .pialarm import panel_from_file
 
 # reads a ser2net trace files from stdin and prints the high-level operations.
 # Optionally writes the implied contents of panel memory to MEMFILE

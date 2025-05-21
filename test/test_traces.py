@@ -1,7 +1,9 @@
-import pytest
 import os
-from pytexalarm.trace_uart import panel_from_ser2net_trace
+
+import pytest
+
 from pytexalarm.trace_pcap import extract_tcp_udl_streams
+from pytexalarm.trace_uart import panel_from_ser2net_trace
 
 
 def test_ser2net_trace() -> None:
