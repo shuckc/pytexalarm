@@ -4,12 +4,7 @@ import argparse
 
 from .udl import udl_frame, udl_verify, UDLClient
 
-from .pialarm import (
-    get_bcd,
-    get_panel_decoder,
-    UDLTopics,
-    interactive_shell
-)
+from .pialarm import get_bcd, get_panel_decoder, UDLTopics, interactive_shell
 
 CMD_LOGIN = 0x5A  # Z
 CMD_READ = 0x4F  # 'O'
@@ -122,6 +117,7 @@ async def main() -> None:
     client = await AsyncioUDLClient.create(
         args.host, port=args.port, udlpasswd=args.password
     )
+    print(f"connected to {args.host}")
     try:
         banner = await client.read_identification()
         print("Banner:", banner)

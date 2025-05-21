@@ -335,9 +335,7 @@ class WintexEliteDecoder(PanelDecoder):
         # do the work
         for base, sz in uncompact_ranges(self.udl_reads_for(topics)):
             bs = await client.read_mem(base, sz)
-            print(bs)
             self.mem[base : base + sz] = bs
-
 
 
 async def interactive_shell(panel: PanelDecoder, **kwargs: Any) -> None:
@@ -346,7 +344,6 @@ async def interactive_shell(panel: PanelDecoder, **kwargs: Any) -> None:
     modification of the panel memory.
     """
     with patch_stdout():
-
         session: PromptSession[str] = PromptSession("(eval) > ")
 
         # Run echo loop. Read text from stdin, and reply it back.
@@ -356,7 +353,7 @@ async def interactive_shell(panel: PanelDecoder, **kwargs: Any) -> None:
                 r = eval(pinput, {"panel": panel, **kwargs})
                 if r:
                     if inspect.isawaitable(r):
-                        print('got coro')
+                        print("got coro")
                         print(await r)
                     else:
                         print(r)

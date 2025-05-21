@@ -39,7 +39,7 @@ This repository contains scripts to speak to (and impersonate) a Texecom alarm p
 
 5. Open up a web browser to `http://localhost:10002` to see the decoded panel configuration
 
-![Web screenshot](./site/screenshot.png)
+![Web screenshot](./docs/screenshot.png)
 
 ## Serial connection
 
