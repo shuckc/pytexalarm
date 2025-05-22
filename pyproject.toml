@@ -34,6 +34,12 @@ classifiers = [
 dynamic = ["version"]
 license = "MIT"
 
+dependencies = [
+    "prompt_toolkit>=3.0.0",
+    "aiohttp-jinja2>=1.6.0",
+    "pyserial_asyncio_fast>=0.16",
+]
+
 
 [project.urls]
 Homepage = "https://github.com/shuckc/pytexalarm"

@@ -46,7 +46,7 @@ def get_web_app(panel: PanelDecoder) -> web.Application:
             web.static("/static", "static", show_index=True),
         ]
     )
-    aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader("templates"))
+    aiohttp_jinja2.setup(app, loader=jinja2.PackageLoader("pytexalarm", "templates"))
 
     app["panel"] = panel
     return app
