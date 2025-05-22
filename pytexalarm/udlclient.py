@@ -127,6 +127,9 @@ async def main() -> None:
     )
     parser.add_argument("--mem", help="write panel config to MEMFILE", default=None)
     parser.add_argument(
+        "--cli", help="interactive terminal", default=False, action="store_true"
+    )
+    parser.add_argument(
         "--json", help="dump json extracted data", default=False, action="store_true"
     )
     args = parser.parse_args()
@@ -153,7 +156,8 @@ async def main() -> None:
 
         if args.json:
             print(json.dumps(panel.decode(), indent=4))
-        else:
+
+        if args.cli:
             try:
                 await interactive_shell(panel, client=client, UDLTopics=UDLTopics)
             except Exception as e:

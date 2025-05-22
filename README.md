@@ -4,7 +4,21 @@
 
 This repository contains pyhton code to speak to (and impersonate) a Texecom alarm panel UDL protocol over either UART serial or TCP ports. The project implements some of the functionality of Wintex, the Texecom windows-based configuration tool. It can dump the configuration from a panel, decode it and expose through a web browser.
 
-## Quickstart - Running a virtual panel
+## Quickstart - Reading config from panel over IP
+
+You will need the *UDL Password* for the alarm system, and either a IPCom or SmartCom installed (or some 3rd party ser2net compatible device).
+
+    $ pip install pytexalarm
+    $ python -m pytexalarm.udlclient --password MYPASSWORD --host 192.168.1.243 --mem home.panel
+    $ python -m pytexalarm.webapp --mem home.panel
+
+Then open up a web browser to http://localhost:8080 to view the panel config
+
+If you have a SmartCom, however the panel is configured in *monitor mode*, then the UDL protocol is turned off on the local network. You need the 'engineers code' to change the Communications settings to the historic configuation of Com1:IPCom and Com2:Smartcom to fix this. See [this thread for details](https://texecom.websitetoolbox.com/post/wintex-connect-over-local-ip-to-smartcom-installation-13602490).
+
+![Web screenshot](./docs/screenshot.png)
+
+## Advanced - Running a virtual panel
 
 1. Install Wintex (on linux works well with playonlinux wrapper)
 2. Setup a new 'Account' with these settings:
@@ -41,8 +55,6 @@ This repository contains pyhton code to speak to (and impersonate) a Texecom ala
         (eval) >
 
 5. Open up a web browser to `http://localhost:10002` to see the decoded panel configuration
-
-![Web screenshot](./docs/screenshot.png)
 
 ## Serial connection
 
