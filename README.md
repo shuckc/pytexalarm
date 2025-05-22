@@ -2,11 +2,11 @@
 
 # pytexalarm
 
-This repository contains pyhton code to speak to (and impersonate) a Texecom alarm panel UDL protocol over either UART serial or TCP ports. The project implements some of the functionality of Wintex, the Texecom windows-based configuration tool. It can dump the configuration from a panel, decode it and expose through a web browser.
+This repository contains python code to speak to (and impersonate) a Texecom alarm panel, via. the proprietary 'UDL protocol' over either UART serial or TCP ports. The project implements some of the functionality of Wintex, the manufacturer's windows-based configuration tool. It can dump the configuration from a panel, decode it and expose through a web browser.
 
 ## Quickstart - Reading config from panel over IP
 
-You will need the *UDL Password* for the alarm system, and either a IPCom or SmartCom installed (or some 3rd party ser2net compatible device).
+You will need the *UDL Password* for the alarm system, and either a IPCom or SmartCom installed (or some 3rd party ser2net compatible device) on your local network:
 
     $ pip install pytexalarm
     $ python -m pytexalarm.udlclient --password MYPASSWORD --host 192.168.1.243 --mem home.panel
@@ -14,7 +14,8 @@ You will need the *UDL Password* for the alarm system, and either a IPCom or Sma
 
 Then open up a web browser to http://localhost:8080 to view the panel config
 
-If you have a SmartCom, however the panel is configured in *monitor mode*, then the UDL protocol is turned off on the local network. You need the 'engineers code' to change the Communications settings to the historic configuation of Com1:IPCom and Com2:Smartcom to fix this. See [this thread for details](https://texecom.websitetoolbox.com/post/wintex-connect-over-local-ip-to-smartcom-installation-13602490).
+> [!IMPORTANT]
+> If you have a SmartCom and the panel is configured in *monitor mode*, then the UDL protocol is blocked from the local network. You need the 'engineers code' to change the Communications settings to the historic configuation of Com1:IPCom and Com2:Smartcom to fix this. See [this thread for details](https://texecom.websitetoolbox.com/post/wintex-connect-over-local-ip-to-smartcom-installation-13602490).
 
 ![Web screenshot](./docs/screenshot.png)
 
@@ -58,53 +59,19 @@ If you have a SmartCom, however the panel is configured in *monitor mode*, then 
 
 ## Serial connection
 
-To interface a raspberry Pi to the alarm panel requires only a couple of resistors, plus a 12-15V DC to 5V DC power adapter. In the [hardware](hardware/) directory you can see how to connect it to the Texecom main board. It it not necessary to buy any IP-communicator or Com300 board to do this.
+It it not necessary to buy a SmartCom, Comm-IP, or Com300 board to use this software. You can use e.g. a FTDI USB-RS232 cable (5V), or with a breakout board and a few resistors, a FTDI 3.3V cable.
 
+If your device has a built in hardware UART, e.g. a Raspberry Pi, this can be interfaced to the alarm panel with only a couple of resistors, plus a 12-15V DC to 5V DC power adapter to power it. In the [hardware](hardware/) directory you can see how to connect it to the Texecom main board.
+
+> [!CAUTION]
+> The TX line of the Texcom panel comms port is driven to +5V, which may exceed the allowable input voltage of some device's hardware UARTs. Ensure a pull-down resistor is used to limit the logic-high voltage to that required by your device. For more details, including the onboard serial resistor, see [hardware](hardware/).
+
+The COM port does not need to be configured as any particular device, the panel allows UDL access on all unconfigured ports by default.
 
 ### Protocol
 
 See captured examples and dissections of the ["simple" protocol](protocol/readme.md) and the [Wintex protocol](protocol/wintex-protocol.md).
 
-
-
-### Panel configuration
-
-Configure via. the keypad as follows:
-
-    COM1                        configure as 'Not connected'
-    COM2                        configure as 'Crestron System'
-    COM2 Speed 19200 baud
-    COM3                        configure as 'Communicator 300'
-    UDL Password -> 12345678    set this in ~/.pialarm
-
-
-
-
-
-### Preparing the pi
-Install a blank `rasbian` install to an SD Card (ideally skipping NOOBS). Boot using a keyboard and screen, then use `sudo raspi-config` to enable ssh (`5 Interfacing Options` -> `P2 SSH` -> `Yes`) then change the password for the `pi` user using `passwd`.
-
-It is necessary to disable the serial `tty` that raspian attaches to `/dev/ttyACM0` in order to access the hardware UART. With recent rasbian releases it is a simple matter of running `sudo raspi-config` and disabling the serial tty under `5 Interfacing Options` -> `P6 Serial` -> `No` -> `Yes` -> `OK`, giving this summary:
-
-    The serial login shell is disabled
-    The serial interface is enabled
-
-Now install the contents of this repository to `~/pialarm` as follows:
-
-	$ sudo apt-get install git
-    $ git clone https://github.com/shuckc/pialarm.git
-    $ cd pialarm
-    $ pip3.6 install -r requirements.txt
-    $ python
-
-You may also update the Pi kernel and firmware with `$ sudo rpi-update` - didn't cause any problems for me.
-
-
-
-### Wiring
-First I used a couple of FTDI USB external COM ports (5V tolerant) as a proof of concept. However it is much neater to omit these and use the GPIO pins on the pi directly. The COM ports on the alarm mainboard all drive `Tx` to 5V logic levels, with a series protection resistor of 9.1kOhm, which needs to be accounted for in the voltage divider to reduce to 3.3V logic for the raspberry pi GPIO pins. Since the protection resistor is quite large, I used this as the top resister in the divider chain, with a bottom resistor of 15kOhm. For Rpi -> Panel, I drove the panel's Rx pin directory with no problems.
-
-For more details see [hardware](hardware/).
 
 ### Legal
 This project is not affiliated with Texecom. The protocols were reversed engineered using a Salae Logic8 logic probe, and later by capturing traffic using the `ser2net` tool, and custom scripts to convert trace files to memory maps. See the [protocol](protocol/) directory for these. For the fine details, a panel was emulated with `udl-server.py` and WinTex used to change settings individually. No author or contributor has signed the Texecom NDA agreement.
