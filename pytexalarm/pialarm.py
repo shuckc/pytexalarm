@@ -330,6 +330,88 @@ class WintexEliteDecoder(PanelDecoder):
                     (23837, 204),
                 ]
             )
+        if UDLTopics.AREAS in topics:
+            reads.extend([(3144, 512), (5792, 256), (6192, 32), (1512, 32)])
+
+        if UDLTopics.GLOBAL in topics:
+            reads.extend(
+                [
+                    (4128, 400),
+                    (6128, 64),
+                    (23086, 32),
+                    (6992, 32),
+                    (6769, 1),
+                    (6769, 1),
+                    (8064, 64),
+                    (288, 96),
+                    (5784, 4),
+                    (8143, 1),
+                    (8143, 1),
+                    (3143, 1),
+                    (25704, 51),
+                    (25771, 17),
+                    (8144, 1),
+                    (8134, 1),
+                    (8135, 1),
+                ]
+            )
+
+        if UDLTopics.KEYPADS in topics:
+            reads.extend([(4000, 128)])
+
+        if UDLTopics.EXPANDERS in topics:
+            reads.extend([(3664, 336), (6784, 240), (2496, 160), (2408, 48)])
+
+        if UDLTopics.OUTPUTS in topics:
+            reads.extend(
+                [(4528, 880), (23040, 40), (6528, 495), (14128, 208), (2408, 48)]
+            )
+
+        if UDLTopics.COMMS in topics:
+            reads.extend(
+                [
+                    (5408, 384),
+                    (6048, 80),
+                    (3416, 6),
+                    (3422, 6),
+                    (3428, 6),
+                    (3434, 6),
+                    (3440, 6),
+                    (23080, 6),
+                    (23119, 149),
+                    (6608, 415),
+                    (2656, 96),
+                    (21184, 96),
+                    (23118, 1),
+                    (23653, 136),
+                    (23828, 1),
+                    (23828, 1),
+                    (25755, 16),
+                    (23812, 16),
+                ]
+            )
+
+        if UDLTopics.USERS in topics:
+            reads.extend(
+                [
+                    (16384, 200),
+                    (17134, 50),
+                    (17234, 50),
+                    (17334, 25),
+                    (17384, 25),
+                    (6320, 50),
+                    (23268, 25),
+                    (16784, 75),
+                    (25355, 24),
+                    (16934, 100),
+                    (2496, 160),
+                    (21280, 100),
+                ]
+            )
+
+        if UDLTopics.LOGS in topics:
+            reads.extend([(8190, 2), (8192, 4000)])
+
         return reads
 
     async def udl_read_with(self, client: UDLClient, topics: UDLTopics) -> None:

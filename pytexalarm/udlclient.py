@@ -148,7 +148,10 @@ async def main() -> None:
         panel = get_panel_decoder(banner)
 
         # Example: read firmware version register
-        await panel.udl_read_with(client, UDLTopics.ZONES)
+        await panel.udl_read_with(
+            client,
+            UDLTopics.ZONES | UDLTopics.AREAS | UDLTopics.USERS | UDLTopics.KEYPADS,
+        )
         print("done reads")
 
         if args.mem:
