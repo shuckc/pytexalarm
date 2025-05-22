@@ -15,7 +15,7 @@ You will need the *UDL Password* for the alarm system, and either a IPCom or Sma
 Then open up a web browser to http://localhost:8080 to view the panel config
 
 > [!IMPORTANT]
-> If you have a SmartCom and the panel is configured in *monitor mode*, then the UDL protocol is blocked from the local network. You need the 'engineers code' to change the Communications settings to the historic configuation of Com1:IPCom and Com2:Smartcom to fix this. See [this thread for details](https://texecom.websitetoolbox.com/post/wintex-connect-over-local-ip-to-smartcom-installation-13602490).
+> If you have a SmartCom and the panel is configured in *monitor mode*, then the UDL protocol is blocked from the local network. You need the 'engineers code' to change the Communications settings to the historic configuation of Com1:IPCom and Com2:Smartcom to fix this. See [this thread for details](https://texecom.websitetoolbox.com/post/wintex-connect-over-local-ip-to-smartcom-installation-13602490) on the Texecom Installers Forum.
 
 ![Web screenshot](./docs/screenshot.png)
 
