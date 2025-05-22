@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 from typing import Any
 
 import aiohttp_jinja2
@@ -38,15 +39,20 @@ async def handle_memory(request: web.Request) -> Any:
 
 def get_web_app(panel: PanelDecoder) -> web.Application:
     app = web.Application()
+    loader = jinja2.PackageLoader("pytexalarm")
+    aiohttp_jinja2.setup(app, loader=loader)
+
+    # borrow PackageLoader's template dir for path to static files
+    static_dir = os.path.normpath(loader._template_root + "/../static")
+
     app.add_routes(
         [
             web.get("/", handle_config),
             web.get("/json", handle_json),
             web.get("/memory", handle_memory),
-            web.static("/static", "static", show_index=True),
+            web.static("/static", static_dir, show_index=True),
         ]
     )
-    aiohttp_jinja2.setup(app, loader=jinja2.PackageLoader("pytexalarm", "templates"))
 
     app["panel"] = panel
     return app
