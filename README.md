@@ -61,7 +61,7 @@ Then open up a web browser to http://localhost:8080 to view the panel config
 
 It it not necessary to buy a SmartCom, Comm-IP, or Com300 board to use this software. You can use e.g. a FTDI USB-RS232 cable (5V), or with a breakout board and a few resistors, a FTDI 3.3V cable.
 
-If your device has a built in hardware UART, e.g. a Raspberry Pi, this can be interfaced to the alarm panel with only a couple of resistors, plus a 12-15V DC to 5V DC power adapter to power it. In the [hardware](hardware/) directory you can see how to connect it to the Texecom main board.
+Or you can run the webserver directly on a device with a built in hardware UART, e.g. a Raspberry Pi. This can be interfaced to the alarm panel port with only a couple of resistors, plus a 12-15V DC to 5V DC power adapter to power it. In the [hardware](hardware/) directory you can see how to connect a Raspberry PI to the Texecom main board.
 
 > [!CAUTION]
 > The TX line of the Texcom panel comms port is driven to +5V, which may exceed the allowable input voltage of some device's hardware UARTs. Ensure a pull-down resistor is used to limit the logic-high voltage to that required by your device. For more details, including the onboard serial resistor, see [hardware](hardware/).
