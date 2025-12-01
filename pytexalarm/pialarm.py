@@ -200,7 +200,7 @@ class WintexEliteDecoder(PanelDecoder):
 
     def decode_users(self) -> list[dict[str, Any]]:
         users = []
-        # merge pincode buffers
+        # merge two pincode buffers, as not contiguous
         pincode = (
             self.mem[0x004190 : 0x004190 + 0x4B] + self.mem[0x00630B : 0x00630B + 0x18]
         )
@@ -296,7 +296,9 @@ class WintexEliteDecoder(PanelDecoder):
         return suites
 
     def get_pincode(self, mem: bytes, offset: int) -> str:
-        x = mem[offset : offset + 3]
+        # 3-byte pincode is stored as hex, with last byte first,
+        # eg. 123456 stored as 0x561234
+        x = mem[offset + 2 : offset + 3] + mem[offset + 0 : offset + 2]
         return x.hex().strip("def")
 
     def udl_reads_for(self, topics: UDLTopics) -> List[Tuple[int, int]]:
